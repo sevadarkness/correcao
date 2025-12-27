@@ -661,9 +661,38 @@ async function searchAndOpenGroup(groupName) {
         searchBox.focus();
         await sleep(300);
 
-        searchBox.textContent = '';
-        document.execCommand('selectAll', false, null);
-        document.execCommand('insertText', false, groupName);
+        // 1. Clicar na aba Grupos primeiro
+        const gruposTab = document.querySelector('button#group-filter') ||
+                          Array.from(document.querySelectorAll('button[role="tab"]'))
+                              .find(btn => btn.textContent?.trim() === 'Grupos');
+        if (gruposTab) {
+            gruposTab.click();
+            await sleep(800);
+        }
+
+        // 2. Preparar campo Lexical (limpar e criar estrutura correta)
+        while (searchBox.firstChild) {
+            searchBox.removeChild(searchBox.firstChild);
+        }
+        const p = document.createElement('p');
+        p.className = '_aupe copyable-text x15bjb6t x1n2onr6';
+        p.setAttribute('dir', 'auto');
+        searchBox.appendChild(p);
+
+        // 3. Posicionar cursor dentro do parágrafo
+        const range = document.createRange();
+        const sel = window.getSelection();
+        range.setStart(p, 0);
+        range.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(range);
+        await sleep(200);
+
+        // 4. Digitar caractere por caractere (simula digitação humana)
+        for (const char of groupName) {
+            document.execCommand('insertText', false, char);
+            await sleep(80);
+        }
         await sleep(2500);
 
         const normalizedTarget = normalizeText(groupName);
