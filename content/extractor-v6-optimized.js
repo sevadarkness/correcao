@@ -625,10 +625,20 @@ const WhatsAppExtractor = {
         }
         
         // Fallback: buscar div scrollável à direita com "membros"
-        const divs = document.querySelectorAll('div');
+        // Layout típico: drawer está à direita (left > 400px), com largura entre 300-500px
+        const MIN_DRAWER_LEFT = 400;
+        const MIN_DRAWER_WIDTH = 300;
+        const MAX_DRAWER_WIDTH = 500;
+        
+        // Limitar busca ao container principal do WhatsApp Web
+        const mainContainer = document.querySelector('#app') || document.body;
+        const divs = mainContainer.querySelectorAll('div');
+        
         for (const div of divs) {
             const rect = div.getBoundingClientRect();
-            if (rect.left > 400 && rect.width > 300 && rect.width < 500) {
+            if (rect.left > MIN_DRAWER_LEFT && 
+                rect.width > MIN_DRAWER_WIDTH && 
+                rect.width < MAX_DRAWER_WIDTH) {
                 if (div.textContent?.includes('membros') && div.id !== 'pane-side') {
                     return div;
                 }
@@ -699,15 +709,20 @@ const WhatsAppExtractor = {
             this.log('🔍 Procurando botão de membros...');
             await this.delay(500);
 
-            // Buscar em todo o documento, não só no drawer
-            const buttons = document.querySelectorAll('div[role="button"]');
+            // Limitar busca ao container principal ou drawer se disponível
+            const searchContainer = this.findGroupInfoDrawer() || 
+                                   document.querySelector('#app') || 
+                                   document.body;
+            const buttons = searchContainer.querySelectorAll('div[role="button"]');
+            
+            const LOG_TEXT_MAX_LENGTH = 30;
             
             for (const btn of buttons) {
                 const text = (btn.textContent || '').trim();
                 
                 // Padrão: "X membros" ou "X members"
                 if (/^\d+\s*(membros|members)/i.test(text)) {
-                    this.log(`✅ Botão encontrado: "${text.substring(0, 30)}"`);
+                    this.log(`✅ Botão encontrado: "${text.substring(0, LOG_TEXT_MAX_LENGTH)}"`);
                     btn.click();
                     await this.delay(1500);
                     return true;
