@@ -3,6 +3,10 @@ console.log('[WA Extractor] Content script v6.0.1 carregado');
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+// Constants for searchAndOpenGroup
+const ESCAPE_KEY_PRESSES = 5;  // Number of Escape presses to clear state
+const CHAR_TYPING_DELAY = 80;  // Delay in ms between typing each character
+
 // ========================================
 // INJETA SCRIPT EXTERNO
 // ========================================
@@ -646,6 +650,21 @@ async function clickGroupInMainList(groupName) {
 }
 
 // ========================================
+// RESTAURAR ABA "TUDO"/"ALL"
+// ========================================
+async function restoreAllTab() {
+    const allTab = document.querySelector('button#all-filter') ||
+                  Array.from(document.querySelectorAll('button[role="tab"]'))
+                      .find(btn => {
+                          const text = btn.textContent?.trim();
+                          return text === 'Tudo' || text === 'All';
+                      });
+    if (allTab) {
+        allTab.click();
+    }
+}
+
+// ========================================
 // PESQUISAR E ABRIR GRUPO
 // ========================================
 async function searchAndOpenGroup(groupName) {
@@ -654,7 +673,7 @@ async function searchAndOpenGroup(groupName) {
 
         // 1. Limpar estado anterior - enviar múltiplos Escape para resetar
         console.log('[WA Extractor] 🧹 Limpando estado anterior...');
-        for (let i = 0; i < 5; i++) {
+        for (let i = 0; i < ESCAPE_KEY_PRESSES; i++) {
             document.body.dispatchEvent(new KeyboardEvent('keydown', {
                 key: 'Escape',
                 code: 'Escape',
@@ -669,7 +688,10 @@ async function searchAndOpenGroup(groupName) {
         console.log('[WA Extractor] 📑 Clicando na aba Grupos...');
         const gruposTab = document.querySelector('button#group-filter') ||
                           Array.from(document.querySelectorAll('button[role="tab"]'))
-                              .find(btn => btn.textContent?.trim() === 'Grupos');
+                              .find(btn => {
+                                  const text = btn.textContent?.trim();
+                                  return text === 'Grupos' || text === 'Groups';
+                              });
         
         if (gruposTab) {
             gruposTab.click();
@@ -716,7 +738,7 @@ async function searchAndOpenGroup(groupName) {
         console.log(`[WA Extractor] ⌨️ Digitando: "${groupName}"`);
         for (const char of groupName) {
             document.execCommand('insertText', false, char);
-            await sleep(80); // 80ms entre caracteres
+            await sleep(CHAR_TYPING_DELAY);
         }
 
         // 7. Aguardar resultados
@@ -744,13 +766,7 @@ async function searchAndOpenGroup(groupName) {
                 
                 // 9. Restaurar estado - voltar para aba "Tudo"
                 await sleep(500);
-                const allTab = document.querySelector('button#all-filter') ||
-                              Array.from(document.querySelectorAll('button[role="tab"]'))
-                                  .find(btn => btn.textContent?.trim() === 'Tudo' || 
-                                               btn.textContent?.trim() === 'All');
-                if (allTab) {
-                    allTab.click();
-                }
+                await restoreAllTab();
                 
                 return true;
             }
@@ -759,13 +775,7 @@ async function searchAndOpenGroup(groupName) {
         console.log('[WA Extractor] ❌ Grupo não encontrado nos resultados');
         
         // Restaurar estado mesmo se não encontrou
-        const allTab = document.querySelector('button#all-filter') ||
-                      Array.from(document.querySelectorAll('button[role="tab"]'))
-                          .find(btn => btn.textContent?.trim() === 'Tudo' || 
-                                       btn.textContent?.trim() === 'All');
-        if (allTab) {
-            allTab.click();
-        }
+        await restoreAllTab();
         
         return false;
     } catch (error) {
