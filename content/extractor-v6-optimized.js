@@ -613,8 +613,11 @@ const WhatsAppExtractor = {
         // Palavras-chave em múltiplas línguas
         const memberKeywords = ['membros', 'members', 'participantes', 'miembros'];
         
+        // Limitar busca ao container principal do WhatsApp Web
+        const mainContainer = document.querySelector('#app') || document.body;
+        
         // Primeiro: buscar SECTION que contém membros (estrutura atual do WhatsApp)
-        const sections = document.querySelectorAll('section');
+        const sections = mainContainer.querySelectorAll('section');
         for (const section of sections) {
             const text = section.textContent?.toLowerCase() || '';
             if (memberKeywords.some(keyword => text.includes(keyword))) {
@@ -630,7 +633,7 @@ const WhatsAppExtractor = {
         ];
         
         for (const selector of selectors) {
-            const drawer = document.querySelector(selector);
+            const drawer = mainContainer.querySelector(selector);
             if (drawer) {
                 const text = drawer.textContent?.toLowerCase() || '';
                 if (memberKeywords.some(keyword => text.includes(keyword))) {
@@ -645,8 +648,6 @@ const WhatsAppExtractor = {
         const MIN_DRAWER_WIDTH = 300;
         const MAX_DRAWER_WIDTH = 500;
         
-        // Limitar busca ao container principal do WhatsApp Web
-        const mainContainer = document.querySelector('#app') || document.body;
         const divs = mainContainer.querySelectorAll('div');
         
         for (const div of divs) {
@@ -669,7 +670,9 @@ const WhatsAppExtractor = {
     },
 
     findMembersButton() {
-        const allButtons = document.querySelectorAll('div[role="button"]');
+        // Limitar busca ao #app para melhor performance
+        const searchContainer = document.querySelector('#app') || document.body;
+        const allButtons = searchContainer.querySelectorAll('div[role="button"]');
         for (const btn of allButtons) {
             const text = (btn.textContent || '').trim();
             if (/^\d+\s*(membros|members|participantes|miembros)/i.test(text)) {
@@ -751,19 +754,22 @@ const WhatsAppExtractor = {
             this.log('🔍 Procurando botão de membros...');
             await this.delay(800); // Aumentar delay
 
-            // Usar o novo método
-            const membersBtn = this.findMembersButton();
+            // Limitar busca ao #app para melhor performance
+            const searchContainer = document.querySelector('#app') || document.body;
+            const allButtons = searchContainer.querySelectorAll('div[role="button"]');
             
-            if (membersBtn) {
-                const text = (membersBtn.textContent || '').trim();
-                this.log(`✅ Botão encontrado: "${text.substring(0, 30)}"`);
-                membersBtn.click();
-                await this.delay(1500);
-                return true;
+            // Primeiro: buscar botão com padrão "X membros"
+            for (const btn of allButtons) {
+                const text = (btn.textContent || '').trim();
+                if (/^\d+\s*(membros|members|participantes|miembros)/i.test(text)) {
+                    this.log(`✅ Botão encontrado: "${text.substring(0, 30)}"`);
+                    btn.click();
+                    await this.delay(1500);
+                    return true;
+                }
             }
             
             // Fallback: buscar "Ver tudo" / "See all"
-            const allButtons = document.querySelectorAll('div[role="button"]');
             for (const btn of allButtons) {
                 const text = (btn.textContent || '').trim();
                 if (/ver tud|see all/i.test(text)) {
