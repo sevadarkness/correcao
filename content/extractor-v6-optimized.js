@@ -651,12 +651,12 @@ const WhatsAppExtractor = {
             this.log('🔍 Procurando botão de membros...');
             await this.delay(300);
 
-            const sections = document.querySelectorAll('div[role="button"]');
-            for (const section of sections) {
-                const text = section.textContent || '';
+            const buttons = document.querySelectorAll('div[role="button"]');
+            for (const button of buttons) {
+                const text = button.textContent || '';
                 if (/\d+\s*(membros|members)/i.test(text) || /ver tud|see all/i.test(text)) {
                     this.log('✅ Botão encontrado');
-                    section.click();
+                    button.click();
                     await this.delay(1500);
                     return true;
                 }
