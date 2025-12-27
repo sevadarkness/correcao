@@ -648,7 +648,7 @@ const WhatsAppExtractor = {
 
     async clickSeeAllMembers() {
         try {
-            this.log('🔍 Procurando botão "Ver todos"...');
+            this.log('🔍 Procurando botão de membros...');
             await this.delay(300);
 
             const sections = document.querySelectorAll('div[role="button"]');
@@ -664,6 +664,7 @@ const WhatsAppExtractor = {
 
             return false;
         } catch (error) {
+            this.log('⚠️ Erro ao procurar botão:', error);
             return false;
         }
     },
