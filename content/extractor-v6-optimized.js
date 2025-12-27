@@ -617,10 +617,16 @@ const WhatsAppExtractor = {
             'div[data-testid="group-info-drawer"]'
         ];
         
+        // Palavras-chave em múltiplas línguas
+        const memberKeywords = ['membros', 'members', 'participantes', 'miembros'];
+        
         for (const selector of selectors) {
             const drawer = document.querySelector(selector);
-            if (drawer && drawer.textContent?.includes('membros')) {
-                return drawer;
+            if (drawer) {
+                const text = drawer.textContent?.toLowerCase() || '';
+                if (memberKeywords.some(keyword => text.includes(keyword))) {
+                    return drawer;
+                }
             }
         }
         
@@ -635,11 +641,16 @@ const WhatsAppExtractor = {
         const divs = mainContainer.querySelectorAll('div');
         
         for (const div of divs) {
+            // Verificar visibilidade antes de calcular geometria
+            if (div.offsetParent === null) continue; // Skip hidden elements
+            
             const rect = div.getBoundingClientRect();
             if (rect.left > MIN_DRAWER_LEFT && 
                 rect.width > MIN_DRAWER_WIDTH && 
                 rect.width < MAX_DRAWER_WIDTH) {
-                if (div.textContent?.includes('membros') && div.id !== 'pane-side') {
+                const text = div.textContent?.toLowerCase() || '';
+                if (memberKeywords.some(keyword => text.includes(keyword)) && 
+                    div.id !== 'pane-side') {
                     return div;
                 }
             }
