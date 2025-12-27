@@ -662,6 +662,10 @@ const WhatsAppExtractor = {
             this.initCaches();
 
             // Tentar encontrar o painel lateral de informações
+            // WhatsApp Web muda a estrutura do DOM com frequência, por isso usamos múltiplos seletores
+            // data-testid="panel" - seletor mais confiável quando disponível
+            // .two - classe usada para o painel lateral direito em versões antigas
+            // role="navigation" - fallback genérico para painéis de navegação
             const infoPanel = document.querySelector('#app > div > div > div[data-testid="panel"]') ||
                             document.querySelector('#app > div > div > .two') ||
                             document.querySelector('#app > div > div > div[role="navigation"]');
@@ -709,10 +713,12 @@ const WhatsAppExtractor = {
                 for (const span of allSpans) {
                     const text = (span.getAttribute('title') || span.textContent || '').trim();
                     if (text && text.length >= 2 && !this.isUIText(text)) {
+                        // Tentar encontrar o container mais próximo com role ou subir 2 níveis
+                        // O DOM do WhatsApp costuma ter: div > div > span para cada membro
                         const container = span.closest('div[role="listitem"]') || 
                                         span.closest('div[role="row"]') ||
                                         span.parentElement?.parentElement;
-                        if (container) {
+                        if (container && container !== infoPanel) {
                             if (!containerMap.has(container)) {
                                 containerMap.set(container, []);
                             }
