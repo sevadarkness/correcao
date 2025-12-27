@@ -650,26 +650,85 @@ async function clickGroupInMainList(groupName) {
 // ========================================
 async function searchAndOpenGroup(groupName) {
     try {
-        console.log('[WA Extractor] 🔍 Iniciando pesquisa...');
+        console.log('[WA Extractor] 🔍 Iniciando pesquisa com método Lexical...');
 
-        const searchBox = await getSearchBox();
+        // 1. Limpar estado anterior - enviar múltiplos Escape para resetar
+        console.log('[WA Extractor] 🧹 Limpando estado anterior...');
+        for (let i = 0; i < 5; i++) {
+            document.body.dispatchEvent(new KeyboardEvent('keydown', {
+                key: 'Escape',
+                code: 'Escape',
+                keyCode: 27,
+                bubbles: true
+            }));
+            await sleep(100);
+        }
+        await sleep(500);
+
+        // 2. Clicar na aba "Grupos"
+        console.log('[WA Extractor] 📑 Clicando na aba Grupos...');
+        const gruposTab = document.querySelector('button#group-filter') ||
+                          Array.from(document.querySelectorAll('button[role="tab"]'))
+                              .find(btn => btn.textContent?.trim() === 'Grupos');
+        
+        if (gruposTab) {
+            gruposTab.click();
+            await sleep(800);
+        } else {
+            console.log('[WA Extractor] ⚠️ Aba Grupos não encontrada, continuando...');
+        }
+
+        // 3. Encontrar e preparar campo de pesquisa
+        const searchBox = document.querySelector('div[contenteditable="true"][data-tab="3"]') ||
+                         await getSearchBox();
+        
         if (!searchBox) {
             console.log('[WA Extractor] ❌ Campo de pesquisa não encontrado');
             return false;
         }
 
+        searchBox.click();
         searchBox.focus();
         await sleep(300);
 
-        searchBox.textContent = '';
-        document.execCommand('selectAll', false, null);
-        document.execCommand('insertText', false, groupName);
-        await sleep(2500);
+        // 4. Limpar conteúdo do campo e criar estrutura Lexical
+        console.log('[WA Extractor] 📝 Preparando estrutura Lexical...');
+        while (searchBox.firstChild) {
+            searchBox.removeChild(searchBox.firstChild);
+        }
 
+        // Criar parágrafo com classes corretas do WhatsApp
+        const p = document.createElement('p');
+        p.className = '_aupe copyable-text x15bjb6t x1n2onr6';
+        p.setAttribute('dir', 'auto');
+        searchBox.appendChild(p);
+
+        // 5. Posicionar cursor dentro do parágrafo usando Range e Selection
+        const range = document.createRange();
+        const sel = window.getSelection();
+        range.setStart(p, 0);
+        range.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(range);
+        await sleep(200);
+
+        // 6. Digitar caractere por caractere
+        console.log(`[WA Extractor] ⌨️ Digitando: "${groupName}"`);
+        for (const char of groupName) {
+            document.execCommand('insertText', false, char);
+            await sleep(80); // 80ms entre caracteres
+        }
+
+        // 7. Aguardar resultados
+        await sleep(2000);
+
+        // 8. Buscar e clicar no grupo encontrado
         const normalizedTarget = normalizeText(groupName);
         const results = document.querySelectorAll(
             '#pane-side span[title], [data-testid="cell-frame-container"] span[title]'
         );
+
+        console.log(`[WA Extractor] 🔎 Procurando por "${groupName}" em ${results.length} resultados...`);
 
         for (const span of results) {
             const title = span.getAttribute('title') || '';
@@ -682,10 +741,32 @@ async function searchAndOpenGroup(groupName) {
                 console.log(`[WA Extractor] ✅ Grupo encontrado na pesquisa: "${title}"`);
                 const clickTarget = findClickableParent(span);
                 simulateClick(clickTarget);
+                
+                // 9. Restaurar estado - voltar para aba "Tudo"
+                await sleep(500);
+                const allTab = document.querySelector('button#all-filter') ||
+                              Array.from(document.querySelectorAll('button[role="tab"]'))
+                                  .find(btn => btn.textContent?.trim() === 'Tudo' || 
+                                               btn.textContent?.trim() === 'All');
+                if (allTab) {
+                    allTab.click();
+                }
+                
                 return true;
             }
         }
 
+        console.log('[WA Extractor] ❌ Grupo não encontrado nos resultados');
+        
+        // Restaurar estado mesmo se não encontrou
+        const allTab = document.querySelector('button#all-filter') ||
+                      Array.from(document.querySelectorAll('button[role="tab"]'))
+                          .find(btn => btn.textContent?.trim() === 'Tudo' || 
+                                       btn.textContent?.trim() === 'All');
+        if (allTab) {
+            allTab.click();
+        }
+        
         return false;
     } catch (error) {
         console.error('[WA Extractor] Erro na pesquisa:', error);
