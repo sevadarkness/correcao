@@ -1235,7 +1235,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             window.popupController.extractionState.membersCount = message.count || 0;
             
             // Salvar estado periodicamente (a cada 10 membros)
-            if (message.count % 10 === 0) {
+            const count = message.count || 0;
+            if (count > 0 && count % 10 === 0) {
                 window.popupController.saveState().catch(console.error);
             }
         }

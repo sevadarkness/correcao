@@ -679,6 +679,7 @@ body {
     font-weight: 700;
     margin-bottom: 12px;
     opacity: 0.95;
+    flex-wrap: wrap;
 }
 
 .members-icon {

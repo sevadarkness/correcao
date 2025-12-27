@@ -80,7 +80,7 @@
                         isMuted: g.mute?.isMuted === true,
                         unreadCount: g.unreadCount || 0,
                         lastMessageTime: g.t || 0,
-                        isDisabled: g.isReadOnly === true || g.suspended === true || false
+                        isDisabled: g.isReadOnly === true || g.suspended === true
                     }))
                     .filter(g => !g.isDisabled); // Filter out disabled groups
 
