@@ -701,6 +701,7 @@ async function searchAndOpenGroup(groupName) {
         }
 
         // 3. Encontrar e preparar campo de pesquisa
+        // data-tab="3" é o atributo que o WhatsApp usa para o campo de pesquisa principal
         const searchBox = document.querySelector('div[contenteditable="true"][data-tab="3"]') ||
                          await getSearchBox();
         
@@ -720,7 +721,8 @@ async function searchAndOpenGroup(groupName) {
         }
 
         // Criar parágrafo com classes corretas do WhatsApp Lexical Editor
-        // Nota: Classes específicas do WhatsApp podem mudar em atualizações futuras
+        // ATENÇÃO: Estas classes específicas do WhatsApp são frágeis e podem mudar em atualizações.
+        // Se o método parar de funcionar após atualização do WhatsApp, revisar estas classes.
         // _aupe: classe base do parágrafo Lexical
         // copyable-text: permite seleção de texto
         // x15bjb6t x1n2onr6: classes de estilo do WhatsApp
@@ -739,6 +741,9 @@ async function searchAndOpenGroup(groupName) {
         await sleep(200);
 
         // 6. Digitar caractere por caractere
+        // Nota: document.execCommand está deprecated, mas é o único método testado que
+        // funciona com o Lexical Editor do WhatsApp. Alternativas modernas (InputEvent, 
+        // Clipboard API) não funcionaram nos testes realizados no console do WhatsApp.
         console.log(`[WA Extractor] ⌨️ Digitando: "${groupName}"`);
         for (const char of groupName) {
             document.execCommand('insertText', false, char);
