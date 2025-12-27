@@ -670,10 +670,16 @@ async function searchAndOpenGroup(groupName) {
             await sleep(800);
         }
 
-        // 2. Preparar campo Lexical (limpar e criar estrutura correta)
+        // 2. Preparar campo Lexical (limpar COMPLETAMENTE primeiro)
+        searchBox.focus();
+        await sleep(200);
+        
+        // Limpar tudo - remover todos os filhos
         while (searchBox.firstChild) {
             searchBox.removeChild(searchBox.firstChild);
         }
+        
+        // Criar estrutura Lexical correta
         const p = document.createElement('p');
         p.className = '_aupe copyable-text x15bjb6t x1n2onr6';
         p.setAttribute('dir', 'auto');

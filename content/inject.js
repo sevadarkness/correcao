@@ -79,8 +79,10 @@
                         isArchived: g.archive === true,
                         isMuted: g.mute?.isMuted === true,
                         unreadCount: g.unreadCount || 0,
-                        lastMessageTime: g.t || 0
-                    }));
+                        lastMessageTime: g.t || 0,
+                        isDisabled: g.isReadOnly === true || g.suspended === true || false
+                    }))
+                    .filter(g => !g.isDisabled); // Filter out disabled groups
 
                 if (onlyArchived) {
                     groups = groups.filter(g => g.isArchived);

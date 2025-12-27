@@ -92,7 +92,6 @@ class PopupController {
 
         // Export buttons
         this.btnExportCSV = document.getElementById('btnExportCSV');
-        this.btnExportJSON = document.getElementById('btnExportJSON');
         this.btnCopyList = document.getElementById('btnCopyList');
         this.btnCopySheets = document.getElementById('btnCopySheets');
         this.btnOpenSheets = document.getElementById('btnOpenSheets');
@@ -140,7 +139,6 @@ class PopupController {
         this.btnViewHistory?.addEventListener('click', () => this.showHistory());
 
         this.btnExportCSV?.addEventListener('click', () => this.exportCSV());
-        this.btnExportJSON?.addEventListener('click', () => this.exportJSON());
         this.btnCopyList?.addEventListener('click', () => this.copyList());
         this.btnCopySheets?.addEventListener('click', () => this.copyToSheets());
         this.btnOpenSheets?.addEventListener('click', () => this.openInSheets());
@@ -682,7 +680,7 @@ class PopupController {
             const headers = ['Nome', 'Telefone', 'Admin', 'Grupo Arquivado', 'Data Extração'];
             const rows = this.extractedData.members.map(m => [
                 m.name,
-                m.phone || '',
+                this.cleanPhone(m.phone) || '',
                 m.isAdmin ? 'Sim' : 'Não',
                 this.extractedData.isArchived ? 'Sim' : 'Não',
                 m.extractedAt
@@ -852,14 +850,32 @@ class PopupController {
                         </div>
                     </div>
                     <div class="history-actions">
-                        <button class="btn-icon" onclick="window.popupController.viewExtraction(${extraction.id})" title="Ver">👁️</button>
-                        <button class="btn-icon" onclick="window.popupController.deleteExtraction(${extraction.id})" title="Deletar">🗑️</button>
+                        <button class="btn-icon" data-action="view" data-id="${extraction.id}" title="Ver">👁️</button>
+                        <button class="btn-icon" data-action="download" data-id="${extraction.id}" title="Baixar CSV">📥</button>
+                        <button class="btn-icon" data-action="delete" data-id="${extraction.id}" title="Deletar">🗑️</button>
                     </div>
                 </div>
             `;
         }).join('');
 
         this.historyList.innerHTML = html;
+
+        // Event delegation para os botões
+        this.historyList.addEventListener('click', (e) => {
+            const button = e.target.closest('[data-action]');
+            if (!button) return;
+
+            const action = button.dataset.action;
+            const id = parseInt(button.dataset.id);
+
+            if (action === 'view') {
+                this.viewExtraction(id);
+            } else if (action === 'download') {
+                this.downloadExtractionCSV(id);
+            } else if (action === 'delete') {
+                this.deleteExtraction(id);
+            }
+        });
     }
 
     async viewExtraction(id) {
@@ -872,6 +888,33 @@ class PopupController {
         } catch (error) {
             console.error('[Popup] Erro ao visualizar extração:', error);
             this.showError('Erro ao carregar extração');
+        }
+    }
+
+    async downloadExtractionCSV(id) {
+        try {
+            const extraction = await this.storage.getExtraction(id);
+            if (extraction) {
+                const headers = ['Nome', 'Telefone', 'Admin', 'Grupo Arquivado', 'Data Extração'];
+                const rows = extraction.members.map(m => [
+                    m.name,
+                    this.cleanPhone(m.phone) || '',
+                    m.isAdmin ? 'Sim' : 'Não',
+                    extraction.isArchived ? 'Sim' : 'Não',
+                    m.extractedAt
+                ]);
+
+                const csv = [headers, ...rows]
+                    .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+                    .join('\n');
+
+                const filename = `${this.sanitizeFilename(extraction.groupName)}_membros.csv`;
+                this.downloadFile(csv, filename, 'text/csv;charset=utf-8');
+                console.log('[Popup] ✅ CSV do histórico exportado:', filename);
+            }
+        } catch (error) {
+            console.error('[Popup] Erro ao baixar CSV:', error);
+            this.showError('Erro ao baixar CSV');
         }
     }
 
@@ -911,6 +954,11 @@ class PopupController {
     // ========================================
     // UTILITÁRIOS
     // ========================================
+    cleanPhone(phone) {
+        if (!phone) return '';
+        return phone.replace(/^\+/, '').replace(/\D/g, '');
+    }
+
     sanitizeFilename(filename) {
         return filename
             .replace(/[<>:"/\\|?*]/g, '')
