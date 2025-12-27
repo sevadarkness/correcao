@@ -588,8 +588,24 @@ const WhatsAppExtractor = {
         try {
             this.log('📂 Abrindo informações do grupo...');
 
-            const header = document.querySelector('#main header');
-            if (!header) throw new Error('Header não encontrado');
+            // Aguardar header aparecer com retry
+            let header = null;
+            const maxAttempts = 10;
+            const delayBetweenAttempts = 500;
+
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+                header = document.querySelector('#main header');
+                if (header) {
+                    this.log(`✅ Header encontrado na tentativa ${attempt}`);
+                    break;
+                }
+                this.log(`⏳ Aguardando header... tentativa ${attempt}/${maxAttempts}`);
+                await this.delay(delayBetweenAttempts);
+            }
+
+            if (!header) {
+                throw new Error('Header não encontrado após múltiplas tentativas');
+            }
 
             const clickable = header.querySelector('[role="button"]') ||
                             header.querySelector('div[tabindex="0"]') ||
