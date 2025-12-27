@@ -169,7 +169,7 @@ const WhatsAppExtractor = {
     isValidMember(name) {
         if (!name || name.length < 2 || name.length > 200) return false;
         if (!this._invalidMemberPattern) {
-            this._invalidMemberPattern = /^^(\d+\s*(membros|members)|ic-close|search-refreshed|default-contact)$/i;
+            this._invalidMemberPattern = /^(\d+\s*(membros|members)|ic-close|search-refreshed|default-contact)$/i;
         }
         return !this._invalidMemberPattern.test(name.trim());
     },
@@ -200,7 +200,7 @@ const WhatsAppExtractor = {
 
             // Cache de regex para telefone
             if (!this._phoneRegex) {
-                this._phoneRegex = /^^\+?\d{10,}$/;
+                this._phoneRegex = /^\+?\d{10,}$/;
             }
 
             for (const span of spans) {
@@ -685,8 +685,15 @@ const WhatsAppExtractor = {
             let memberElements = [];
             for (const selector of memberSelectors) {
                 const elements = Array.from(infoPanel.querySelectorAll(selector));
-                if (elements.length > memberElements.length) {
-                    memberElements = elements;
+                // Validar se elementos contêm dados de membros
+                if (elements.length > 0) {
+                    const hasValidContent = elements.some(el => {
+                        const text = el.textContent || '';
+                        return text.length > 2 && !this.isUIText(text);
+                    });
+                    if (hasValidContent && elements.length > memberElements.length) {
+                        memberElements = elements;
+                    }
                 }
             }
 
