@@ -609,68 +609,13 @@ const WhatsAppExtractor = {
         }
     },
 
-    findGroupInfoDrawer() {
-        // Múltiplos seletores para encontrar o drawer
-        const selectors = [
-            'div._aig-',
-            'div[data-testid="contact-info-drawer"]',
-            'div[data-testid="group-info-drawer"]'
-        ];
-        
-        // Palavras-chave em múltiplas línguas
-        const memberKeywords = ['membros', 'members', 'participantes', 'miembros'];
-        
-        for (const selector of selectors) {
-            const drawer = document.querySelector(selector);
-            if (drawer) {
-                const text = drawer.textContent?.toLowerCase() || '';
-                if (memberKeywords.some(keyword => text.includes(keyword))) {
-                    return drawer;
-                }
-            }
-        }
-        
-        // Fallback: buscar div scrollável à direita com "membros"
-        // Layout típico: drawer está à direita (left > 400px), com largura entre 300-500px
-        const MIN_DRAWER_LEFT = 400;
-        const MIN_DRAWER_WIDTH = 300;
-        const MAX_DRAWER_WIDTH = 500;
-        
-        // Limitar busca ao container principal do WhatsApp Web
-        const mainContainer = document.querySelector('#app') || document.body;
-        const divs = mainContainer.querySelectorAll('div');
-        
-        for (const div of divs) {
-            // Verificar visibilidade antes de calcular geometria
-            if (div.offsetParent === null) continue; // Skip hidden elements
-            
-            const rect = div.getBoundingClientRect();
-            if (rect.left > MIN_DRAWER_LEFT && 
-                rect.width > MIN_DRAWER_WIDTH && 
-                rect.width < MAX_DRAWER_WIDTH) {
-                const text = div.textContent?.toLowerCase() || '';
-                if (memberKeywords.some(keyword => text.includes(keyword)) && 
-                    div.id !== 'pane-side') {
-                    return div;
-                }
-            }
-        }
-        
-        return null;
-    },
+
 
     async openGroupInfo() {
         try {
             this.log('📂 Abrindo informações do grupo...');
 
-            // Primeiro: verificar se drawer já está aberto
-            let drawer = this.findGroupInfoDrawer();
-            if (drawer) {
-                this.log('✅ Drawer de info já está aberto');
-                return true;
-            }
-
-            // Segundo: tentar clicar no header
+            // Aguardar header com retry
             let header = null;
             const maxAttempts = 10;
             const delayBetweenAttempts = 500;
@@ -681,25 +626,11 @@ const WhatsAppExtractor = {
                     this.log(`✅ Header encontrado na tentativa ${attempt}`);
                     break;
                 }
-                
-                // Verificar se drawer apareceu enquanto esperava
-                drawer = this.findGroupInfoDrawer();
-                if (drawer) {
-                    this.log('✅ Drawer apareceu durante espera');
-                    return true;
-                }
-                
                 this.log(`⏳ Aguardando header... tentativa ${attempt}/${maxAttempts}`);
                 await this.delay(delayBetweenAttempts);
             }
 
             if (!header) {
-                // Última tentativa: buscar drawer novamente
-                drawer = this.findGroupInfoDrawer();
-                if (drawer) {
-                    this.log('✅ Drawer encontrado como fallback');
-                    return true;
-                }
                 throw new Error('Header não encontrado após múltiplas tentativas');
             }
 
@@ -717,41 +648,22 @@ const WhatsAppExtractor = {
 
     async clickSeeAllMembers() {
         try {
-            this.log('🔍 Procurando botão de membros...');
-            await this.delay(500);
+            this.log('🔍 Procurando botão "Ver todos"...');
+            await this.delay(300);
 
-            // Limitar busca ao container principal ou drawer se disponível
-            const searchContainer = this.findGroupInfoDrawer() || 
-                                   document.querySelector('#app') || 
-                                   document.body;
-            const buttons = searchContainer.querySelectorAll('div[role="button"]');
-            
-            const LOG_TEXT_MAX_LENGTH = 30;
-            
-            for (const btn of buttons) {
-                const text = (btn.textContent || '').trim();
-                
-                // Padrão: "X membros" ou "X members"
-                if (/^\d+\s*(membros|members)/i.test(text)) {
-                    this.log(`✅ Botão encontrado: "${text.substring(0, LOG_TEXT_MAX_LENGTH)}"`);
-                    btn.click();
-                    await this.delay(1500);
-                    return true;
-                }
-                
-                // Fallback: "Ver tudo" / "See all"
-                if (/ver tud|see all/i.test(text)) {
-                    this.log(`✅ Botão "Ver todos" encontrado`);
-                    btn.click();
+            const sections = document.querySelectorAll('div[role="button"]');
+            for (const section of sections) {
+                const text = section.textContent || '';
+                if (/\d+\s*(membros|members)/i.test(text) || /ver tud|see all/i.test(text)) {
+                    this.log('✅ Botão encontrado');
+                    section.click();
                     await this.delay(1500);
                     return true;
                 }
             }
 
-            this.log('⚠️ Botão de membros não encontrado - grupo pequeno?');
             return false;
         } catch (error) {
-            this.log('❌ Erro ao buscar botão:', error);
             return false;
         }
     },
@@ -783,123 +695,7 @@ const WhatsAppExtractor = {
         }
     },
 
-    async extractMembersFromInfoPanel(onProgress) {
-        try {
-            this.log('📋 Extraindo membros diretamente do painel de informações...');
-            
-            this.state.members.clear();
-            this.state.memberCache.clear();
-            this.initCaches();
 
-            // Tentar encontrar o painel lateral de informações
-            // WhatsApp Web muda a estrutura do DOM com frequência, por isso usamos múltiplos seletores
-            // data-testid="panel" - seletor mais confiável quando disponível
-            // .two - classe usada para o painel lateral direito em versões antigas
-            // role="navigation" - fallback genérico para painéis de navegação
-            const infoPanel = document.querySelector('#app > div > div > div[data-testid="panel"]') ||
-                            document.querySelector('#app > div > div > .two') ||
-                            document.querySelector('#app > div > div > div[role="navigation"]');
-
-            if (!infoPanel) {
-                this.log('⚠️ Painel de informações não encontrado');
-                throw new Error('Painel de informações não encontrado');
-            }
-
-            this.log('✅ Painel de informações encontrado');
-
-            // Procurar por elementos de membros no painel
-            // Podem estar em listitem, row, ou divs com spans
-            const memberSelectors = [
-                '[role="listitem"]',
-                '[role="row"]',
-                '[data-testid="cell-frame-container"]',
-                'div[class*="member"]'
-            ];
-
-            let memberElements = [];
-            for (const selector of memberSelectors) {
-                const elements = Array.from(infoPanel.querySelectorAll(selector));
-                // Validar se elementos contêm dados de membros
-                if (elements.length > 0) {
-                    const hasValidContent = elements.some(el => {
-                        const text = el.textContent || '';
-                        return text.length > 2 && !this.isUIText(text);
-                    });
-                    if (hasValidContent && elements.length > memberElements.length) {
-                        memberElements = elements;
-                    }
-                }
-            }
-
-            this.log(`📊 Encontrados ${memberElements.length} elementos potenciais`);
-
-            // Se não encontrou elementos específicos, buscar spans com nomes
-            if (memberElements.length === 0) {
-                this.log('🔍 Buscando spans com nomes...');
-                const allSpans = Array.from(infoPanel.querySelectorAll('span[title], span[dir="auto"]'));
-                
-                // Agrupar spans por container pai para identificar membros
-                const containerMap = new Map();
-                for (const span of allSpans) {
-                    const text = (span.getAttribute('title') || span.textContent || '').trim();
-                    if (text && text.length >= 2 && !this.isUIText(text)) {
-                        // Tentar encontrar o container mais próximo com role ou subir 2 níveis
-                        // O DOM do WhatsApp costuma ter: div > div > span para cada membro
-                        const container = span.closest('div[role="listitem"]') || 
-                                        span.closest('div[role="row"]') ||
-                                        span.parentElement?.parentElement;
-                        if (container && container !== infoPanel) {
-                            if (!containerMap.has(container)) {
-                                containerMap.set(container, []);
-                            }
-                            containerMap.get(container).push(span);
-                        }
-                    }
-                }
-                
-                memberElements = Array.from(containerMap.keys());
-                this.log(`📊 Encontrados ${memberElements.length} containers com spans`);
-            }
-
-            // Extrair membros de cada elemento
-            let extractedCount = 0;
-            for (const element of memberElements) {
-                const memberData = this.extractMemberDataOptimized(element);
-
-                if (memberData && memberData.name && this.isValidMember(memberData.name)) {
-                    const hash = memberData.key;
-
-                    if (!this.state.memberCache.has(hash)) {
-                        this.state.members.set(hash, {
-                            name: memberData.name,
-                            phone: memberData.phone,
-                            isAdmin: memberData.isAdmin,
-                            extractedAt: memberData.extractedAt
-                        });
-                        this.state.memberCache.add(hash);
-                        extractedCount++;
-                    }
-                }
-            }
-
-            this.log(`✅ Extraídos ${extractedCount} membros do painel`);
-
-            // Enviar progresso
-            if (onProgress) {
-                const membersArray = Array.from(this.state.members.values());
-                onProgress({
-                    status: 'Membros extraídos do painel',
-                    count: membersArray.length,
-                    members: membersArray
-                });
-            }
-
-            return extractedCount;
-        } catch (error) {
-            this.log('❌ Erro ao extrair do painel:', error);
-            throw error;
-        }
-    },
 
     async closeModalAndPanels() {
         try {
@@ -950,48 +746,27 @@ const WhatsAppExtractor = {
             await this.delay(1000);
 
             onProgress?.({ status: 'Expandindo lista...', count: 0 });
-            const hasModal = await this.clickSeeAllMembers();
-            await this.delay(800);
+            await this.clickSeeAllMembers();
+            await this.delay(1200);
 
-            if (hasModal) {
-                // GRUPOS GRANDES: Extrair do modal
-                this.log('📊 Grupo grande detectado - usando modal');
-                
-                onProgress?.({ status: 'Localizando membros...', count: 0 });
-                this.state.modalInfo = this.findMembersModal();
+            onProgress?.({ status: 'Localizando membros...', count: 0 });
+            this.state.modalInfo = this.findMembersModal();
 
-                if (!this.state.modalInfo) {
-                    throw new Error('Modal não encontrado');
-                }
-
-                onProgress?.({ status: 'Capturando membros...', count: 0 });
-
-                await this.scrollAndCaptureOptimized(this.state.modalInfo, (data) => {
-                    onProgress?.({
-                        status: 'Capturando membros...',
-                        count: data.loaded,
-                        members: data.members
-                    });
-                });
-
-                await this.closeModalAndPanels();
-            } else {
-                // GRUPOS PEQUENOS: Extrair diretamente do painel
-                this.log('📋 Grupo pequeno detectado - extraindo do painel lateral');
-                
-                onProgress?.({ status: 'Capturando membros do painel...', count: 0 });
-                
-                await this.extractMembersFromInfoPanel((data) => {
-                    onProgress?.({
-                        status: data.status || 'Capturando membros...',
-                        count: data.count,
-                        members: data.members
-                    });
-                });
-
-                // Fechar painel de informações
-                await this.closeModalAndPanels();
+            if (!this.state.modalInfo) {
+                throw new Error('Modal não encontrado');
             }
+
+            onProgress?.({ status: 'Capturando membros...', count: 0 });
+
+            await this.scrollAndCaptureOptimized(this.state.modalInfo, (data) => {
+                onProgress?.({
+                    status: 'Capturando membros...',
+                    count: data.loaded,
+                    members: data.members
+                });
+            });
+
+            await this.closeModalAndPanels();
 
             this.state.isExtracting = false;
 
