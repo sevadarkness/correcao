@@ -610,15 +610,24 @@ const WhatsAppExtractor = {
     },
 
     findGroupInfoDrawer() {
-        // Múltiplos seletores para encontrar o drawer
+        // Palavras-chave em múltiplas línguas
+        const memberKeywords = ['membros', 'members', 'participantes', 'miembros'];
+        
+        // Primeiro: buscar SECTION que contém membros (estrutura atual do WhatsApp)
+        const sections = document.querySelectorAll('section');
+        for (const section of sections) {
+            const text = section.textContent?.toLowerCase() || '';
+            if (memberKeywords.some(keyword => text.includes(keyword))) {
+                return section;
+            }
+        }
+        
+        // Segundo: seletores conhecidos
         const selectors = [
             'div._aig-',
             'div[data-testid="contact-info-drawer"]',
             'div[data-testid="group-info-drawer"]'
         ];
-        
-        // Palavras-chave em múltiplas línguas
-        const memberKeywords = ['membros', 'members', 'participantes', 'miembros'];
         
         for (const selector of selectors) {
             const drawer = document.querySelector(selector);
@@ -659,21 +668,35 @@ const WhatsAppExtractor = {
         return null;
     },
 
+    findMembersButton() {
+        const allButtons = document.querySelectorAll('div[role="button"]');
+        for (const btn of allButtons) {
+            const text = (btn.textContent || '').trim();
+            if (/^\d+\s*(membros|members|participantes|miembros)/i.test(text)) {
+                return btn;
+            }
+        }
+        return null;
+    },
+
     async openGroupInfo() {
         try {
             this.log('📂 Abrindo informações do grupo...');
 
-            // Primeiro: verificar se drawer já está aberto
+            // Aguardar DOM estabilizar
+            await this.delay(1000);
+
+            // Primeiro: verificar se drawer/section já está aberto
             let drawer = this.findGroupInfoDrawer();
             if (drawer) {
-                this.log('✅ Drawer de info já está aberto');
+                this.log('✅ Drawer/Section de info já está aberto');
                 return true;
             }
 
             // Segundo: tentar clicar no header
             let header = null;
-            const maxAttempts = 10;
-            const delayBetweenAttempts = 500;
+            const maxAttempts = 15; // Aumentar tentativas
+            const delayBetweenAttempts = 800; // Aumentar delay
 
             for (let attempt = 1; attempt <= maxAttempts; attempt++) {
                 header = document.querySelector('#main header');
@@ -700,6 +723,14 @@ const WhatsAppExtractor = {
                     this.log('✅ Drawer encontrado como fallback');
                     return true;
                 }
+                
+                // Tentar clicar no botão de membros diretamente (bypass header)
+                const membersBtn = this.findMembersButton();
+                if (membersBtn) {
+                    this.log('✅ Botão de membros encontrado diretamente - pulando header');
+                    return true;
+                }
+                
                 throw new Error('Header não encontrado após múltiplas tentativas');
             }
 
@@ -708,7 +739,7 @@ const WhatsAppExtractor = {
                             header;
 
             clickable.click();
-            await this.delay(1200);
+            await this.delay(1500); // Aumentar delay após clique
             return true;
         } catch (error) {
             throw error;
@@ -718,28 +749,23 @@ const WhatsAppExtractor = {
     async clickSeeAllMembers() {
         try {
             this.log('🔍 Procurando botão de membros...');
-            await this.delay(500);
+            await this.delay(800); // Aumentar delay
 
-            // Limitar busca ao container principal ou drawer se disponível
-            const searchContainer = this.findGroupInfoDrawer() || 
-                                   document.querySelector('#app') || 
-                                   document.body;
-            const buttons = searchContainer.querySelectorAll('div[role="button"]');
+            // Usar o novo método
+            const membersBtn = this.findMembersButton();
             
-            const LOG_TEXT_MAX_LENGTH = 30;
+            if (membersBtn) {
+                const text = (membersBtn.textContent || '').trim();
+                this.log(`✅ Botão encontrado: "${text.substring(0, 30)}"`);
+                membersBtn.click();
+                await this.delay(1500);
+                return true;
+            }
             
-            for (const btn of buttons) {
+            // Fallback: buscar "Ver tudo" / "See all"
+            const allButtons = document.querySelectorAll('div[role="button"]');
+            for (const btn of allButtons) {
                 const text = (btn.textContent || '').trim();
-                
-                // Padrão: "X membros" ou "X members"
-                if (/^\d+\s*(membros|members)/i.test(text)) {
-                    this.log(`✅ Botão encontrado: "${text.substring(0, LOG_TEXT_MAX_LENGTH)}"`);
-                    btn.click();
-                    await this.delay(1500);
-                    return true;
-                }
-                
-                // Fallback: "Ver tudo" / "See all"
                 if (/ver tud|see all/i.test(text)) {
                     this.log(`✅ Botão "Ver todos" encontrado`);
                     btn.click();
@@ -947,11 +973,11 @@ const WhatsAppExtractor = {
 
             onProgress?.({ status: 'Abrindo informações...', count: 0 });
             await this.openGroupInfo();
-            await this.delay(1000);
+            await this.delay(1500); // Aumentar delay
 
             onProgress?.({ status: 'Expandindo lista...', count: 0 });
             const hasModal = await this.clickSeeAllMembers();
-            await this.delay(800);
+            await this.delay(1200); // Aumentar delay
 
             if (hasModal) {
                 // GRUPOS GRANDES: Extrair do modal
