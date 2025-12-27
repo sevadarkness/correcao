@@ -609,11 +609,68 @@ const WhatsAppExtractor = {
         }
     },
 
+    findGroupInfoDrawer() {
+        // Múltiplos seletores para encontrar o drawer
+        const selectors = [
+            'div._aig-',
+            'div[data-testid="contact-info-drawer"]',
+            'div[data-testid="group-info-drawer"]'
+        ];
+        
+        // Palavras-chave em múltiplas línguas
+        const memberKeywords = ['membros', 'members', 'participantes', 'miembros'];
+        
+        for (const selector of selectors) {
+            const drawer = document.querySelector(selector);
+            if (drawer) {
+                const text = drawer.textContent?.toLowerCase() || '';
+                if (memberKeywords.some(keyword => text.includes(keyword))) {
+                    return drawer;
+                }
+            }
+        }
+        
+        // Fallback: buscar div scrollável à direita com "membros"
+        // Layout típico: drawer está à direita (left > 400px), com largura entre 300-500px
+        const MIN_DRAWER_LEFT = 400;
+        const MIN_DRAWER_WIDTH = 300;
+        const MAX_DRAWER_WIDTH = 500;
+        
+        // Limitar busca ao container principal do WhatsApp Web
+        const mainContainer = document.querySelector('#app') || document.body;
+        const divs = mainContainer.querySelectorAll('div');
+        
+        for (const div of divs) {
+            // Verificar visibilidade antes de calcular geometria
+            if (div.offsetParent === null) continue; // Skip hidden elements
+            
+            const rect = div.getBoundingClientRect();
+            if (rect.left > MIN_DRAWER_LEFT && 
+                rect.width > MIN_DRAWER_WIDTH && 
+                rect.width < MAX_DRAWER_WIDTH) {
+                const text = div.textContent?.toLowerCase() || '';
+                if (memberKeywords.some(keyword => text.includes(keyword)) && 
+                    div.id !== 'pane-side') {
+                    return div;
+                }
+            }
+        }
+        
+        return null;
+    },
+
     async openGroupInfo() {
         try {
             this.log('📂 Abrindo informações do grupo...');
 
-            // Aguardar header aparecer com retry
+            // Primeiro: verificar se drawer já está aberto
+            let drawer = this.findGroupInfoDrawer();
+            if (drawer) {
+                this.log('✅ Drawer de info já está aberto');
+                return true;
+            }
+
+            // Segundo: tentar clicar no header
             let header = null;
             const maxAttempts = 10;
             const delayBetweenAttempts = 500;
@@ -624,11 +681,25 @@ const WhatsAppExtractor = {
                     this.log(`✅ Header encontrado na tentativa ${attempt}`);
                     break;
                 }
+                
+                // Verificar se drawer apareceu enquanto esperava
+                drawer = this.findGroupInfoDrawer();
+                if (drawer) {
+                    this.log('✅ Drawer apareceu durante espera');
+                    return true;
+                }
+                
                 this.log(`⏳ Aguardando header... tentativa ${attempt}/${maxAttempts}`);
                 await this.delay(delayBetweenAttempts);
             }
 
             if (!header) {
+                // Última tentativa: buscar drawer novamente
+                drawer = this.findGroupInfoDrawer();
+                if (drawer) {
+                    this.log('✅ Drawer encontrado como fallback');
+                    return true;
+                }
                 throw new Error('Header não encontrado após múltiplas tentativas');
             }
 
@@ -646,23 +717,41 @@ const WhatsAppExtractor = {
 
     async clickSeeAllMembers() {
         try {
-            this.log('🔍 Procurando botão "Ver todos"...');
-            await this.delay(300);
+            this.log('🔍 Procurando botão de membros...');
+            await this.delay(500);
 
-            const sections = document.querySelectorAll('div[role="button"]');
-            for (const section of sections) {
-                const text = section.textContent || '';
-                if (/\d+\s*(membros|members)/i.test(text) || /ver tud|see all/i.test(text)) {
-                    this.log('✅ Botão encontrado - abrindo modal');
-                    section.click();
+            // Limitar busca ao container principal ou drawer se disponível
+            const searchContainer = this.findGroupInfoDrawer() || 
+                                   document.querySelector('#app') || 
+                                   document.body;
+            const buttons = searchContainer.querySelectorAll('div[role="button"]');
+            
+            const LOG_TEXT_MAX_LENGTH = 30;
+            
+            for (const btn of buttons) {
+                const text = (btn.textContent || '').trim();
+                
+                // Padrão: "X membros" ou "X members"
+                if (/^\d+\s*(membros|members)/i.test(text)) {
+                    this.log(`✅ Botão encontrado: "${text.substring(0, LOG_TEXT_MAX_LENGTH)}"`);
+                    btn.click();
+                    await this.delay(1500);
+                    return true;
+                }
+                
+                // Fallback: "Ver tudo" / "See all"
+                if (/ver tud|see all/i.test(text)) {
+                    this.log(`✅ Botão "Ver todos" encontrado`);
+                    btn.click();
                     await this.delay(1500);
                     return true;
                 }
             }
 
-            this.log('⚠️ Botão "Ver todos" não encontrado - provavelmente grupo pequeno');
+            this.log('⚠️ Botão de membros não encontrado - grupo pequeno?');
             return false;
         } catch (error) {
+            this.log('❌ Erro ao buscar botão:', error);
             return false;
         }
     },
