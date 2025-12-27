@@ -32,6 +32,18 @@
             <div id="progressBar" class="progress-bar">
                 <div id="progressFill" class="progress-fill"></div>
             </div>
+            <!-- Controles de extração -->
+            <div id="extractionControls" class="extraction-controls hidden">
+                <button id="btnPauseExtraction" class="btn-control btn-control-pause" title="Pausar extração">
+                    ⏸️ Pausar
+                </button>
+                <button id="btnResumeExtraction" class="btn-control btn-control-resume hidden" title="Continuar extração">
+                    ▶️ Continuar
+                </button>
+                <button id="btnStopExtraction" class="btn-control btn-control-stop" title="Parar extração">
+                    ⏹️ Parar
+                </button>
+            </div>
         </div>
 
         <!-- ========================================
@@ -181,9 +193,6 @@
                 <button id="btnExportCSV" class="btn btn-export" title="Exportar como CSV (Ctrl+S)">
                     📄 CSV
                 </button>
-                <button id="btnExportJSON" class="btn btn-export" title="Exportar como JSON">
-                    📋 JSON
-                </button>
                 <button id="btnCopyList" class="btn btn-export" title="Copiar lista">
                     📋 Copiar
                 </button>
@@ -253,7 +262,7 @@
         ======================================== -->
         <footer class="footer">
             <span class="footer-text">
-                💡 Virtual Scroll + IndexedDB + Google Sheets Export
+                WhatsApp Group Member Extractor
             </span>
         </footer>
     </div>

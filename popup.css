@@ -679,6 +679,7 @@ body {
     font-weight: 700;
     margin-bottom: 12px;
     opacity: 0.95;
+    flex-wrap: wrap;
 }
 
 .members-icon {
@@ -1133,4 +1134,73 @@ body {
         transform: scale(1);
         opacity: 1;
     }
+}
+/* ========================================
+   EXTRACTION CONTROLS
+======================================== */
+.extraction-controls {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.extraction-controls.hidden {
+    display: none;
+}
+
+.btn-control {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    outline: none;
+    user-select: none;
+}
+
+.btn-control:hover {
+    transform: translateY(-1px);
+}
+
+.btn-control:active {
+    transform: scale(0.98);
+}
+
+.btn-control-pause {
+    background: rgba(255, 193, 7, 0.9);
+    color: #000;
+    box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
+}
+
+.btn-control-pause:hover {
+    background: rgba(255, 193, 7, 1);
+    box-shadow: 0 4px 12px rgba(255, 193, 7, 0.4);
+}
+
+.btn-control-resume {
+    background: rgba(37, 211, 102, 0.9);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(37, 211, 102, 0.3);
+}
+
+.btn-control-resume:hover {
+    background: rgba(37, 211, 102, 1);
+    box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4);
+}
+
+.btn-control-stop {
+    background: rgba(244, 67, 54, 0.9);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(244, 67, 54, 0.3);
+}
+
+.btn-control-stop:hover {
+    background: rgba(244, 67, 54, 1);
+    box-shadow: 0 4px 12px rgba(244, 67, 54, 0.4);
 }

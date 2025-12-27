@@ -9,6 +9,15 @@ class PopupController {
         this.currentFilter = 'all';
         this.stats = { total: 0, archived: 0, active: 0 };
 
+        // Estado de extração
+        this.extractionState = {
+            isRunning: false,
+            isPaused: false,
+            currentGroup: null,
+            progress: 0,
+            membersCount: 0
+        };
+
         // Caches e otimizações
         this.groupsCache = null;
         this.performanceMonitor = null;
@@ -70,8 +79,160 @@ class PopupController {
             if (deleted > 0) {
                 console.log(`[Popup] 🗑️ ${deleted} extrações antigas removidas`);
             }
+
+            // Restaurar estado se houver
+            await this.restoreState();
         } catch (error) {
             console.error('[Popup] Erro ao inicializar storage:', error);
+        }
+    }
+
+    // ========================================
+    // STATE PERSISTENCE
+    // ========================================
+    async saveState() {
+        try {
+            const state = {
+                groups: this.groups,
+                selectedGroup: this.selectedGroup,
+                extractionState: this.extractionState,
+                stats: this.stats,
+                timestamp: Date.now()
+            };
+            
+            await chrome.storage.local.set({ extractorState: state });
+            console.log('[Popup] ✅ Estado salvo');
+        } catch (error) {
+            console.error('[Popup] Erro ao salvar estado:', error);
+        }
+    }
+
+    async restoreState() {
+        try {
+            const result = await chrome.storage.local.get('extractorState');
+            
+            if (result.extractorState) {
+                const state = result.extractorState;
+                
+                // Verificar se o estado não é muito antigo (mais de 1 hora)
+                const age = Date.now() - state.timestamp;
+                if (age > 3600000) {
+                    console.log('[Popup] Estado muito antigo, ignorando');
+                    await chrome.storage.local.remove('extractorState');
+                    return;
+                }
+                
+                // Restaurar dados
+                if (state.groups && state.groups.length > 0) {
+                    this.groups = state.groups;
+                    this.stats = state.stats || this.stats;
+                }
+                
+                if (state.selectedGroup) {
+                    this.selectedGroup = state.selectedGroup;
+                }
+                
+                if (state.extractionState) {
+                    this.extractionState = state.extractionState;
+                    
+                    // Se estava em execução ou pausada, notificar usuário
+                    if (state.extractionState.isRunning || state.extractionState.isPaused) {
+                        console.log('[Popup] ⚠️ Extração anterior detectada');
+                        // Usuário pode retomar manualmente
+                    }
+                }
+                
+                console.log('[Popup] ✅ Estado restaurado');
+            }
+        } catch (error) {
+            console.error('[Popup] Erro ao restaurar estado:', error);
+        }
+    }
+
+    async clearState() {
+        try {
+            await chrome.storage.local.remove('extractorState');
+            console.log('[Popup] 🗑️ Estado limpo');
+        } catch (error) {
+            console.error('[Popup] Erro ao limpar estado:', error);
+        }
+    }
+
+    // ========================================
+    // EXTRACTION CONTROLS
+    // ========================================
+    async pauseExtraction() {
+        try {
+            console.log('[Popup] ⏸️ Pausando extração...');
+            this.extractionState.isPaused = true;
+            this.extractionState.isRunning = false;
+            
+            // Enviar comando para content script
+            await this.sendMessage('pauseExtraction');
+            
+            // Atualizar UI
+            this.btnPauseExtraction?.classList.add('hidden');
+            this.btnResumeExtraction?.classList.remove('hidden');
+            
+            this.showStatus('⏸️ Extração pausada', this.extractionState.progress);
+            
+            await this.saveState();
+        } catch (error) {
+            console.error('[Popup] Erro ao pausar:', error);
+            this.showError('Erro ao pausar extração');
+        }
+    }
+
+    async resumeExtraction() {
+        try {
+            console.log('[Popup] ▶️ Retomando extração...');
+            this.extractionState.isPaused = false;
+            this.extractionState.isRunning = true;
+            
+            // Enviar comando para content script
+            await this.sendMessage('resumeExtraction');
+            
+            // Atualizar UI
+            this.btnPauseExtraction?.classList.remove('hidden');
+            this.btnResumeExtraction?.classList.add('hidden');
+            
+            this.showStatus('▶️ Extração retomada...', this.extractionState.progress);
+            
+            await this.saveState();
+        } catch (error) {
+            console.error('[Popup] Erro ao retomar:', error);
+            this.showError('Erro ao retomar extração');
+        }
+    }
+
+    async stopExtraction() {
+        try {
+            if (!confirm('⚠️ Tem certeza que deseja parar a extração?\n\nOs dados coletados até agora não serão perdidos.')) {
+                return;
+            }
+            
+            console.log('[Popup] ⏹️ Parando extração...');
+            this.extractionState.isRunning = false;
+            this.extractionState.isPaused = false;
+            
+            // Enviar comando para content script
+            await this.sendMessage('stopExtraction');
+            
+            // Ocultar controles
+            this.extractionControls?.classList.add('hidden');
+            
+            this.hideStatus();
+            this.setLoading(this.btnExtract, false);
+            
+            await this.clearState();
+            
+            // Se já tem dados, mostrar resultado parcial
+            if (this.extractedData && this.extractedData.members && this.extractedData.members.length > 0) {
+                this.showResults();
+            }
+        } catch (error) {
+            console.error('[Popup] Erro ao parar:', error);
+            this.showError('Erro ao parar extração');
         }
     }
 
@@ -92,7 +253,6 @@ class PopupController {
 
         // Export buttons
         this.btnExportCSV = document.getElementById('btnExportCSV');
-        this.btnExportJSON = document.getElementById('btnExportJSON');
         this.btnCopyList = document.getElementById('btnCopyList');
         this.btnCopySheets = document.getElementById('btnCopySheets');
         this.btnOpenSheets = document.getElementById('btnOpenSheets');
@@ -100,6 +260,12 @@ class PopupController {
         // History buttons
         this.btnBackFromHistory = document.getElementById('btnBackFromHistory');
         this.btnClearHistory = document.getElementById('btnClearHistory');
+
+        // Extraction control buttons
+        this.extractionControls = document.getElementById('extractionControls');
+        this.btnPauseExtraction = document.getElementById('btnPauseExtraction');
+        this.btnResumeExtraction = document.getElementById('btnResumeExtraction');
+        this.btnStopExtraction = document.getElementById('btnStopExtraction');
 
         // Checkboxes
         this.chkIncludeArchived = document.getElementById('chkIncludeArchived');
@@ -140,13 +306,17 @@ class PopupController {
         this.btnViewHistory?.addEventListener('click', () => this.showHistory());
 
         this.btnExportCSV?.addEventListener('click', () => this.exportCSV());
-        this.btnExportJSON?.addEventListener('click', () => this.exportJSON());
         this.btnCopyList?.addEventListener('click', () => this.copyList());
         this.btnCopySheets?.addEventListener('click', () => this.copyToSheets());
         this.btnOpenSheets?.addEventListener('click', () => this.openInSheets());
 
         this.btnBackFromHistory?.addEventListener('click', () => this.goToStep(1));
         this.btnClearHistory?.addEventListener('click', () => this.clearHistory());
+
+        // Extraction controls
+        this.btnPauseExtraction?.addEventListener('click', () => this.pauseExtraction());
+        this.btnResumeExtraction?.addEventListener('click', () => this.resumeExtraction());
+        this.btnStopExtraction?.addEventListener('click', () => this.stopExtraction());
 
         // Debounced search
         this.searchGroups?.addEventListener('input', 
@@ -541,9 +711,23 @@ class PopupController {
             }
 
             this.setLoading(this.btnExtract, true);
+            
+            // Atualizar estado
+            this.extractionState.isRunning = true;
+            this.extractionState.isPaused = false;
+            this.extractionState.currentGroup = this.selectedGroup;
+            this.extractionState.progress = 0;
+            this.extractionState.membersCount = 0;
 
             const groupStatus = this.selectedGroup.isArchived ? 'arquivado' : 'ativo';
             this.showStatus(`🔍 Navegando até o grupo ${groupStatus}...`, 10);
+            
+            // Mostrar controles de extração
+            this.extractionControls?.classList.remove('hidden');
+            this.btnPauseExtraction?.classList.remove('hidden');
+            this.btnResumeExtraction?.classList.add('hidden');
+
+            await this.saveState();
 
             const navResponse = await this.sendMessage('navigateToGroup', {
                 groupId: this.selectedGroup.id,
@@ -575,6 +759,11 @@ class PopupController {
                     console.log(`[Popup] ✅ Extração concluída em ${duration?.toFixed(2)}ms`);
                 }
 
+                // Limpar estado de extração
+                this.extractionState.isRunning = false;
+                this.extractionState.isPaused = false;
+                await this.clearState();
+
                 this.showResults();
             } else {
                 throw new Error(extractResponse?.error || 'Erro durante a extração');
@@ -583,8 +772,14 @@ class PopupController {
             console.error('[Popup] ❌ Erro na extração:', error);
             this.showError(error.message);
             this.setLoading(this.btnExtract, false);
+            
+            // Limpar estado em caso de erro
+            this.extractionState.isRunning = false;
+            this.extractionState.isPaused = false;
+            await this.clearState();
         } finally {
             this.hideStatus();
+            this.extractionControls?.classList.add('hidden');
         }
     }
 
@@ -682,7 +877,7 @@ class PopupController {
             const headers = ['Nome', 'Telefone', 'Admin', 'Grupo Arquivado', 'Data Extração'];
             const rows = this.extractedData.members.map(m => [
                 m.name,
-                m.phone || '',
+                this.cleanPhone(m.phone) || '',
                 m.isAdmin ? 'Sim' : 'Não',
                 this.extractedData.isArchived ? 'Sim' : 'Não',
                 m.extractedAt
@@ -852,14 +1047,32 @@ class PopupController {
                         </div>
                     </div>
                     <div class="history-actions">
-                        <button class="btn-icon" onclick="window.popupController.viewExtraction(${extraction.id})" title="Ver">👁️</button>
-                        <button class="btn-icon" onclick="window.popupController.deleteExtraction(${extraction.id})" title="Deletar">🗑️</button>
+                        <button class="btn-icon" data-action="view" data-id="${extraction.id}" title="Ver">👁️</button>
+                        <button class="btn-icon" data-action="download" data-id="${extraction.id}" title="Baixar CSV">📥</button>
+                        <button class="btn-icon" data-action="delete" data-id="${extraction.id}" title="Deletar">🗑️</button>
                     </div>
                 </div>
             `;
         }).join('');
 
         this.historyList.innerHTML = html;
+
+        // Event delegation para os botões
+        this.historyList.addEventListener('click', (e) => {
+            const button = e.target.closest('[data-action]');
+            if (!button) return;
+
+            const action = button.dataset.action;
+            const id = parseInt(button.dataset.id);
+
+            if (action === 'view') {
+                this.viewExtraction(id);
+            } else if (action === 'download') {
+                this.downloadExtractionCSV(id);
+            } else if (action === 'delete') {
+                this.deleteExtraction(id);
+            }
+        });
     }
 
     async viewExtraction(id) {
@@ -872,6 +1085,33 @@ class PopupController {
         } catch (error) {
             console.error('[Popup] Erro ao visualizar extração:', error);
             this.showError('Erro ao carregar extração');
+        }
+    }
+
+    async downloadExtractionCSV(id) {
+        try {
+            const extraction = await this.storage.getExtraction(id);
+            if (extraction) {
+                const headers = ['Nome', 'Telefone', 'Admin', 'Grupo Arquivado', 'Data Extração'];
+                const rows = extraction.members.map(m => [
+                    m.name,
+                    this.cleanPhone(m.phone) || '',
+                    m.isAdmin ? 'Sim' : 'Não',
+                    extraction.isArchived ? 'Sim' : 'Não',
+                    m.extractedAt
+                ]);
+
+                const csv = [headers, ...rows]
+                    .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+                    .join('\n');
+
+                const filename = `${this.sanitizeFilename(extraction.groupName)}_membros.csv`;
+                this.downloadFile(csv, filename, 'text/csv;charset=utf-8');
+                console.log('[Popup] ✅ CSV do histórico exportado:', filename);
+            }
+        } catch (error) {
+            console.error('[Popup] Erro ao baixar CSV:', error);
+            this.showError('Erro ao baixar CSV');
         }
     }
 
@@ -911,6 +1151,11 @@ class PopupController {
     // ========================================
     // UTILITÁRIOS
     // ========================================
+    cleanPhone(phone) {
+        if (!phone) return '';
+        return phone.replace(/^\+/, '').replace(/\D/g, '');
+    }
+
     sanitizeFilename(filename) {
         return filename
             .replace(/[<>:"/\\|?*]/g, '')
@@ -982,6 +1227,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
         if (progressFill && message.progress) {
             progressFill.style.width = `${message.progress}%`;
+        }
+        
+        // Atualizar estado de extração
+        if (window.popupController) {
+            window.popupController.extractionState.progress = message.progress || 0;
+            window.popupController.extractionState.membersCount = message.count || 0;
+            
+            // Salvar estado periodicamente (a cada 10 membros)
+            const count = message.count || 0;
+            if (count > 0 && count % 10 === 0) {
+                window.popupController.saveState().catch(console.error);
+            }
         }
     }
 });

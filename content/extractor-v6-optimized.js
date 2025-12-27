@@ -4,6 +4,8 @@ const WhatsAppExtractor = {
     
     state: {
         isExtracting: false,
+        isPaused: false,
+        shouldStop: false,
         members: new Map(),
         groupName: '',
         debug: true,
@@ -416,6 +418,29 @@ const WhatsAppExtractor = {
 
         // Loop de scroll
         while (scrollAttempts < CONFIG.MAX_ATTEMPTS) {
+            // Verificar se deve parar
+            if (this.state.shouldStop) {
+                this.log('⏹️ Extração interrompida pelo usuário');
+                break;
+            }
+
+            // Verificar se está pausado
+            while (this.state.isPaused) {
+                this.log('⏸️ Extração pausada, aguardando...');
+                await this.delay(500);
+                
+                // Se for parar durante a pausa
+                if (this.state.shouldStop) {
+                    this.log('⏹️ Extração interrompida durante pausa');
+                    break;
+                }
+            }
+
+            // Verificar novamente após sair da pausa
+            if (this.state.shouldStop) {
+                break;
+            }
+
             // Verificar limite máximo
             if (this.state.members.size >= this.CONFIG.EXTRACTION.MAX_MEMBERS) {
                 this.log('⚠️ Limite máximo de membros atingido');
@@ -822,6 +847,8 @@ const WhatsAppExtractor = {
             }
 
             this.state.isExtracting = true;
+            this.state.isPaused = false;
+            this.state.shouldStop = false;
             this.state.members.clear();
             this.state.memberCache.clear();
 
@@ -903,10 +930,22 @@ const WhatsAppExtractor = {
 
     stopExtraction() {
         this.state.isExtracting = false;
+        this.state.shouldStop = true;
+        this.state.isPaused = false;
         if (this.domCache) {
             this.domCache.clear();
         }
         this.log('⏹️ Extração interrompida');
+    },
+
+    pauseExtraction() {
+        this.state.isPaused = true;
+        this.log('⏸️ Extração pausada');
+    },
+
+    resumeExtraction() {
+        this.state.isPaused = false;
+        this.log('▶️ Extração retomada');
     },
 
     debugDOM() {
