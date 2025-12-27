@@ -719,7 +719,11 @@ async function searchAndOpenGroup(groupName) {
             searchBox.removeChild(searchBox.firstChild);
         }
 
-        // Criar parágrafo com classes corretas do WhatsApp
+        // Criar parágrafo com classes corretas do WhatsApp Lexical Editor
+        // Nota: Classes específicas do WhatsApp podem mudar em atualizações futuras
+        // _aupe: classe base do parágrafo Lexical
+        // copyable-text: permite seleção de texto
+        // x15bjb6t x1n2onr6: classes de estilo do WhatsApp
         const p = document.createElement('p');
         p.className = '_aupe copyable-text x15bjb6t x1n2onr6';
         p.setAttribute('dir', 'auto');
@@ -780,6 +784,14 @@ async function searchAndOpenGroup(groupName) {
         return false;
     } catch (error) {
         console.error('[WA Extractor] Erro na pesquisa:', error);
+        
+        // Restaurar estado mesmo em caso de erro
+        try {
+            await restoreAllTab();
+        } catch (restoreError) {
+            console.error('[WA Extractor] Erro ao restaurar aba:', restoreError);
+        }
+        
         return false;
     }
 }
