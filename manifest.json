@@ -1,0 +1,52 @@
+{
+  "manifest_version": 3,
+  "name": "WhatsApp Group Member Extractor",
+  "version": "6.0.1",
+  "description": "Extrai membros de grupos do WhatsApp com Virtual Scroll, IndexedDB e Google Sheets export",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "unlimitedStorage"
+  ],
+  "host_permissions": [
+    "https://web.whatsapp.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background/background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://web.whatsapp.com/*"],
+      "js": [
+        "content/extractor-v6-optimized.js",
+        "content/content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "content/inject.js",
+        "utils/utils-optimized.js",
+        "utils/storage.js",
+        "utils/google-sheets-export.js"
+      ],
+      "matches": ["https://web.whatsapp.com/*"]
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

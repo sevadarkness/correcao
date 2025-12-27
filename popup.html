@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Group Extractor v6.0.1</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="container">
+        <!-- ========================================
+             HEADER
+        ======================================== -->
+        <header class="header">
+            <div class="logo">
+                <span class="logo-icon">👥</span>
+                <h1>WA Extractor</h1>
+            </div>
+            <div class="header-actions">
+                <button id="btnViewHistory" class="btn-icon-header" title="Ver Histórico (Ctrl+H)">
+                    📜
+                </button>
+                <span class="version">v6.0.1</span>
+            </div>
+        </header>
+
+        <!-- ========================================
+             BARRA DE STATUS
+        ======================================== -->
+        <div id="statusBar" class="status-bar hidden">
+            <span id="statusText">Aguardando...</span>
+            <div id="progressBar" class="progress-bar">
+                <div id="progressFill" class="progress-fill"></div>
+            </div>
+        </div>
+
+        <!-- ========================================
+             ETAPA 1: CARREGAR GRUPOS
+        ======================================== -->
+        <section id="step1" class="step">
+            <p class="instruction">
+                Carregue seus grupos do WhatsApp para começar:
+            </p>
+
+            <button id="btnLoadGroups" class="btn btn-primary btn-large">
+                <span class="btn-icon">📂</span>
+                Carregar Grupos
+            </button>
+
+            <!-- Opções de carregamento -->
+            <div class="load-options">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="chkIncludeArchived" checked>
+                    <span class="checkbox-text">Incluir grupos arquivados</span>
+                </label>
+            </div>
+
+            <div class="info-box">
+                <span class="info-icon">ℹ️</span>
+                <span class="info-text">
+                    Certifique-se de estar com o WhatsApp Web aberto
+                </span>
+            </div>
+
+            <!-- Atalhos -->
+            <div class="shortcuts-box">
+                <p class="shortcuts-title">⌨️ Atalhos:</p>
+                <ul class="shortcuts-list">
+                    <li><kbd>Ctrl+L</kbd> Carregar grupos</li>
+                    <li><kbd>Ctrl+H</kbd> Ver histórico</li>
+                    <li><kbd>Ctrl+F</kbd> Buscar grupo</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- ========================================
+             ETAPA 2: SELECIONAR GRUPO
+        ======================================== -->
+        <section id="step2" class="step hidden">
+            <div class="groups-header">
+                <h2>Selecione um Grupo</h2>
+                <span id="groupCount" class="badge">0 grupos</span>
+            </div>
+
+            <!-- Estatísticas -->
+            <div id="groupStats" class="group-stats">
+                <div class="stat-item" id="statActive">
+                    <span class="stat-icon">💬</span>
+                    <span class="stat-value">0</span>
+                    <span class="stat-label">ativos</span>
+                </div>
+                <div class="stat-item" id="statArchived">
+                    <span class="stat-icon">📦</span>
+                    <span class="stat-value">0</span>
+                    <span class="stat-label">arquivados</span>
+                </div>
+            </div>
+
+            <!-- Filtros por abas -->
+            <div class="filter-tabs">
+                <button class="filter-tab active" data-filter="all">
+                    <span class="tab-icon">📋</span> Todos
+                </button>
+                <button class="filter-tab" data-filter="active">
+                    <span class="tab-icon">💬</span> Ativos
+                </button>
+                <button class="filter-tab" data-filter="archived">
+                    <span class="tab-icon">📦</span> Arquivados
+                </button>
+            </div>
+
+            <!-- Campo de busca -->
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input 
+                    type="text" 
+                    id="searchGroups" 
+                    placeholder="Filtrar grupos..." 
+                    autocomplete="off" 
+                />
+            </div>
+
+            <!-- Lista de grupos (Virtual Scroll) -->
+            <div id="groupsList" class="groups-list">
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Carregando grupos...</p>
+                </div>
+            </div>
+
+            <!-- Ações -->
+            <div class="actions">
+                <button id="btnBack" class="btn btn-secondary">
+                    ← Voltar
+                </button>
+                <button id="btnExtract" class="btn btn-primary" disabled>
+                    <span class="btn-icon">📥</span>
+                    Extrair Membros
+                </button>
+            </div>
+        </section>
+
+        <!-- ========================================
+             ETAPA 3: RESULTADO
+        ======================================== -->
+        <section id="step3" class="step hidden">
+            <div class="result-header">
+                <span class="result-icon">✅</span>
+                <h2>Extração Concluída!</h2>
+            </div>
+
+            <!-- Informações do resultado -->
+            <div class="result-info">
+                <div class="result-item">
+                    <span class="label">Grupo:</span>
+                    <span id="resultGroupName" class="value">-</span>
+                </div>
+                <div class="result-item">
+                    <span class="label">Status:</span>
+                    <span id="resultGroupStatus" class="value">-</span>
+                </div>
+                <div class="result-item">
+                    <span class="label">Membros:</span>
+                    <span id="resultMemberCount" class="value">-</span>
+                </div>
+            </div>
+
+            <!-- Lista de membros extraídos (Virtual Scroll) -->
+            <div class="members-container">
+                <h3 class="members-title">
+                    <span class="members-icon">👥</span>
+                    Membros Extraídos
+                </h3>
+                <div id="membersList" class="members-list">
+                    <!-- Membros serão inseridos aqui via Virtual Scroll -->
+                </div>
+            </div>
+
+            <!-- Botões de exportação -->
+            <div class="export-buttons">
+                <button id="btnExportCSV" class="btn btn-export" title="Exportar como CSV (Ctrl+S)">
+                    📄 CSV
+                </button>
+                <button id="btnExportJSON" class="btn btn-export" title="Exportar como JSON">
+                    📋 JSON
+                </button>
+                <button id="btnCopyList" class="btn btn-export" title="Copiar lista">
+                    📋 Copiar
+                </button>
+            </div>
+
+            <!-- Botões Google Sheets -->
+            <div class="sheets-buttons">
+                <button id="btnCopySheets" class="btn btn-sheets" title="Copiar para Google Sheets (Ctrl+G)">
+                    <span class="btn-icon">📊</span> Copiar para Sheets
+                </button>
+                <button id="btnOpenSheets" class="btn btn-sheets-outline" title="Abrir no Google Sheets">
+                    <span class="btn-icon">🔗</span> Abrir no Sheets
+                </button>
+            </div>
+
+            <!-- Botão nova extração -->
+            <button id="btnNewExtraction" class="btn btn-secondary btn-large">
+                🔄 Nova Extração
+            </button>
+        </section>
+
+        <!-- ========================================
+             ETAPA 4: HISTÓRICO
+        ======================================== -->
+        <section id="step4" class="step hidden">
+            <div class="history-header">
+                <h2>📜 Histórico de Extrações</h2>
+            </div>
+
+            <!-- Estatísticas do histórico -->
+            <div id="historyStats" class="history-stats">
+                <!-- Stats serão inseridas dinamicamente -->
+            </div>
+
+            <!-- Lista do histórico -->
+            <div id="historyList" class="history-list">
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Carregando histórico...</p>
+                </div>
+            </div>
+
+            <!-- Ações do histórico -->
+            <div class="actions">
+                <button id="btnBackFromHistory" class="btn btn-secondary">
+                    ← Voltar
+                </button>
+                <button id="btnClearHistory" class="btn btn-danger">
+                    🗑️ Limpar Tudo
+                </button>
+            </div>
+        </section>
+
+        <!-- ========================================
+             MENSAGEM DE ERRO
+        ======================================== -->
+        <div id="errorBox" class="error-box hidden">
+            <span class="error-icon">⚠️</span>
+            <span id="errorText" class="error-text">Erro desconhecido</span>
+            <button id="btnDismissError" class="btn-dismiss" title="Fechar">
+                ✕
+            </button>
+        </div>
+
+        <!-- ========================================
+             FOOTER
+        ======================================== -->
+        <footer class="footer">
+            <span class="footer-text">
+                💡 Virtual Scroll + IndexedDB + Google Sheets Export
+            </span>
+        </footer>
+    </div>
+
+    <!-- ========================================
+         SCRIPTS - SEM type="module"
+    ======================================== -->
+    <script src="utils/utils-optimized.js"></script>
+    <script src="utils/storage.js"></script>
+    <script src="utils/google-sheets-export.js"></script>
+    <script src="popup.js"></script>
+</body>
+</html>
