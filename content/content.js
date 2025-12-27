@@ -91,6 +91,27 @@ async function handleMessage(message) {
             
         case 'extractMembers':
             return await extractMembers();
+
+        case 'pauseExtraction':
+            if (typeof WhatsAppExtractor !== 'undefined') {
+                WhatsAppExtractor.pauseExtraction();
+                return { success: true };
+            }
+            return { success: false, error: 'Extractor não disponível' };
+
+        case 'resumeExtraction':
+            if (typeof WhatsAppExtractor !== 'undefined') {
+                WhatsAppExtractor.resumeExtraction();
+                return { success: true };
+            }
+            return { success: false, error: 'Extractor não disponível' };
+
+        case 'stopExtraction':
+            if (typeof WhatsAppExtractor !== 'undefined') {
+                WhatsAppExtractor.stopExtraction();
+                return { success: true };
+            }
+            return { success: false, error: 'Extractor não disponível' };
             
         case 'getGroupName':
             return { 
