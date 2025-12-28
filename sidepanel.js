@@ -1,4 +1,4 @@
-// sidepanel.js - WhatsApp Group Extractor v7.0.0 - Side Panel Implementation with Headless Mode
+// sidepanel.js - WhatsApp Group Extractor v6.0.6 - Side Panel Implementation
 class PopupController {
     constructor() {
         // Estado
@@ -8,9 +8,6 @@ class PopupController {
         this.extractedData = null;
         this.currentFilter = 'all';
         this.stats = { total: 0, archived: 0, active: 0 };
-        
-        // Headless mode (v7.0.0)
-        this.useHeadlessMode = true; // Default to headless extraction
 
         // Constantes de progresso
         this.PROGRESS = {
@@ -56,7 +53,6 @@ class PopupController {
             this.cacheElements();
             this.bindEventsOptimized();
             this.setupHistoryEventDelegation(); // Configurar event delegation do histórico
-            this.setupHeadlessMessageListener(); // Setup headless mode listener
             this.initStorage();
             this.checkWhatsAppTab();
         });
@@ -774,114 +770,9 @@ class PopupController {
     }
 
     // ========================================
-    // HEADLESS EXTRACTION (v7.0.0)
-    // ========================================
-    setupHeadlessMessageListener() {
-        chrome.runtime.onMessage.addListener((message) => {
-            if (message.type === 'HEADLESS_STATE') {
-                this.showStatus(`${message.message}`, this.extractionState.progress || 5);
-            }
-            
-            if (message.type === 'HEADLESS_PROGRESS') {
-                this.extractionState.progress = message.percent || 0;
-                this.extractionState.membersCount = message.count || 0;
-                this.showStatus(`🔍 Extraindo... (${message.count} membros)`, message.percent);
-            }
-            
-            if (message.type === 'HEADLESS_DONE') {
-                this.extractedData = {
-                    groupName: message.meta.groupName,
-                    totalMembers: message.meta.total,
-                    members: message.members,
-                    isArchived: message.meta.isArchived,
-                    extractedAt: new Date().toISOString()
-                };
-                
-                this.extractionState.isRunning = false;
-                this.extractionState.isPaused = false;
-                
-                this.saveExtractionToStorage();
-                this.showResults();
-            }
-            
-            if (message.type === 'HEADLESS_ERROR') {
-                this.extractionState.isRunning = false;
-                this.extractionState.isPaused = false;
-                this.setLoading(this.btnExtract, false);
-                this.hideStatus();
-                this.showError(this.getHumanMessage(message.code));
-            }
-        });
-    }
-    
-    async startHeadlessExtraction() {
-        if (!this.selectedGroup) {
-            this.showError('⚠️ Selecione um grupo primeiro');
-            return;
-        }
-        
-        if (this.extractionState.isRunning) {
-            this.showError('⏳ Aguarde! Já existe uma extração em andamento.');
-            return;
-        }
-        
-        try {
-            const jobId = `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-            
-            this.extractionState.isRunning = true;
-            this.extractionState.isPaused = false;
-            this.extractionState.currentGroup = this.selectedGroup;
-            this.extractionState.progress = 3;
-            this.extractionState.membersCount = 0;
-            
-            this.setLoading(this.btnExtract, true);
-            this.showStatus('🚀 Iniciando extração headless...', 3);
-            
-            console.log('[SidePanel] 🚀 Starting headless extraction:', jobId);
-            
-            chrome.runtime.sendMessage({
-                type: 'START_HEADLESS_EXTRACTION',
-                jobId,
-                groupId: this.selectedGroup.id,
-                groupName: this.selectedGroup.name,
-                isArchived: this.selectedGroup.isArchived
-            });
-            
-        } catch (error) {
-            console.error('[SidePanel] Error starting headless extraction:', error);
-            this.extractionState.isRunning = false;
-            this.setLoading(this.btnExtract, false);
-            this.showError('❌ Erro ao iniciar extração. Tente novamente.');
-        }
-    }
-    
-    getHumanMessage(code) {
-        const messages = {
-            'LOGIN_REQUIRED': '🔐 WhatsApp Web precisa ser conectado (QR Code). Abra o WhatsApp Web e conecte seu dispositivo.',
-            'CONNECTING_TIMEOUT': '📶 WhatsApp está conectando. Verifique internet/celular e tente novamente.',
-            'WORKER_READY_TIMEOUT': '⚠️ Não foi possível inicializar. Recarregue o WhatsApp Web e tente novamente.',
-            'WORKER_BOOT_TIMEOUT': '⚠️ Tempo esgotado ao carregar WhatsApp Web. Tente novamente.',
-            'EXTRACTION_TIMEOUT': '⏱️ Extração demorou além do esperado. Tente novamente.',
-            'EXTRACTION_FAILED': '❌ Erro durante extração. Tente novamente.',
-            'WORKER_CRASHED': '💥 Erro inesperado. Tente novamente.',
-            'LOCKED': '🔒 Já existe uma extração em andamento. Aguarde.',
-            'CANCELLED': '❌ Extração cancelada.',
-            'NO_CHAT': '📱 Não foi possível abrir o chat. Tente novamente.',
-            'SESSION_CHECK_TIMEOUT': '⏱️ Tempo esgotado ao verificar sessão. Tente novamente.'
-        };
-        return messages[code] || '❌ Erro desconhecido. Tente novamente.';
-    }
-
-    // ========================================
     // EXTRAÇÃO
     // ========================================
     async startExtraction() {
-        // Use headless mode by default (v7.0.0)
-        if (this.useHeadlessMode) {
-            return this.startHeadlessExtraction();
-        }
-        
-        // Legacy extraction mode (backward compatibility)
         if (!this.selectedGroup) {
             this.showError('⚠️ Selecione um grupo primeiro');
             return;
