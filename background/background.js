@@ -1,12 +1,10 @@
-// background.js - WhatsApp Group Extractor v6.0.9 - BACKGROUND PERSISTENCE
-console.log('[WA Extractor] Background script carregado v6.0.9');
+// background.js - WhatsApp Group Extractor v6.0.7 - BACKGROUND PERSISTENCE
+console.log('[WA Extractor] Background script carregado v6.0.7');
 
 // Flag global de lock para prevenir race conditions
 let extractionLock = false;
 let extractionLockTimeout = null;
 const LOCK_TIMEOUT_MS = 300000; // 5 minutes timeout for safety
-const SIDE_PANEL_OPEN_DELAY = 1500; // Delay before opening Side Panel after redirect (1.5s)
-const TAB_LOAD_TIMEOUT = 30000; // Maximum time to wait for tab to load (30 seconds)
 
 // Function to clear lock with timeout
 function setExtractionLock(value) {
@@ -39,94 +37,8 @@ let extractionState = {
     status: 'idle' // 'idle', 'running', 'paused', 'completed', 'error'
 };
 
-// Configurar Side Panel para aparecer APENAS no WhatsApp Web
-chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-    if (changeInfo.status === 'complete' || changeInfo.url) {
-        const isWhatsApp = tab.url?.startsWith('https://web.whatsapp.com');
-        
-        try {
-            await chrome.sidePanel.setOptions({
-                tabId: tabId,
-                enabled: isWhatsApp
-            });
-        } catch (error) {
-            // Ignorar erros silenciosamente (tab pode ter sido fechada)
-        }
-    }
-});
-
-// Também verificar quando a aba é ativada
-chrome.tabs.onActivated.addListener(async (activeInfo) => {
-    try {
-        const tab = await chrome.tabs.get(activeInfo.tabId);
-        const isWhatsApp = tab.url?.startsWith('https://web.whatsapp.com');
-        
-        await chrome.sidePanel.setOptions({
-            tabId: activeInfo.tabId,
-            enabled: isWhatsApp
-        });
-    } catch (error) {
-        console.log('[WA Extractor] Erro ao verificar aba:', error);
-    }
-});
-
-// Configuração inicial para todas as abas existentes
-chrome.tabs.query({}).then(async tabs => {
-    await Promise.all(
-        tabs.map(async (tab) => {
-            if (tab.id) {
-                const isWhatsApp = tab.url?.startsWith('https://web.whatsapp.com');
-                try {
-                    await chrome.sidePanel.setOptions({
-                        tabId: tab.id,
-                        enabled: isWhatsApp
-                    });
-                } catch (error) {
-                    // Ignorar erros (tab pode ter sido fechada)
-                }
-            }
-        })
-    );
-});
-
-// Listener para abrir Side Panel ao clicar no ícone
-chrome.action.onClicked.addListener(async (tab) => {
-    try {
-        const isWhatsApp = tab.url?.startsWith('https://web.whatsapp.com');
-        
-        if (isWhatsApp) {
-            // Já está no WhatsApp, abrir Side Panel
-            await chrome.sidePanel.setOptions({
-                tabId: tab.id,
-                enabled: true
-            });
-            await chrome.sidePanel.open({ tabId: tab.id });
-            console.log('[WA Extractor] Side Panel aberto');
-        } else {
-            // Não está no WhatsApp, abrir WhatsApp e depois o painel
-            const newTab = await chrome.tabs.create({ url: 'https://web.whatsapp.com' });
-            
-            // Aguardar a aba carregar e abrir Side Panel
-            chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
-                if (tabId === newTab.id && info.status === 'complete') {
-                    chrome.tabs.onUpdated.removeListener(listener);
-                    
-                    setTimeout(async () => {
-                        try {
-                            await chrome.sidePanel.setOptions({ tabId: newTab.id, enabled: true });
-                            await chrome.sidePanel.open({ tabId: newTab.id });
-                            console.log('[WA Extractor] Side Panel aberto após redirecionamento');
-                        } catch (error) {
-                            console.error('[WA Extractor] Erro ao abrir Side Panel após redirecionamento:', error);
-                        }
-                    }, SIDE_PANEL_OPEN_DELAY);
-                }
-            });
-        }
-    } catch (error) {
-        console.error('[WA Extractor] Erro:', error);
-    }
-});
+// Configurar Side Panel para abrir ao clicar no ícone
+chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(console.error);
 
 // Keepalive para manter o service worker ativo
 let keepaliveInterval = null;
