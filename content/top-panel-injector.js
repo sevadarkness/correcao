@@ -24,7 +24,7 @@
     function createTopPanel() {
         const panel = document.createElement('div');
         panel.id = 'wa-extractor-top-panel';
-        panel.className = 'wa-extractor-top-panel';
+        panel.className = 'wa-extractor-top-panel hidden';
         
         panel.innerHTML = `
             <div class="top-panel-container">
@@ -47,9 +47,6 @@
                     </div>
                 </div>
                 <div class="top-panel-right">
-                    <button class="top-panel-minimize" title="Minimizar painel">
-                        <span>−</span>
-                    </button>
                 </div>
             </div>
         `;
@@ -68,21 +65,47 @@
         const panel = createTopPanel();
         document.body.insertBefore(panel, document.body.firstChild);
         
-        // Compress WhatsApp content
-        compressWhatsAppContent();
+        // WhatsApp content compression is deferred until the panel becomes visible to ensure proper synchronization with the side panel state
         
         // Setup event listeners
         setupEventListeners(panel);
         
-        console.log('[TopPanel] ✅ Panel injected successfully');
+        // Register custom event listeners for show/hide commands
+        registerEventListeners();
+        
+        console.log('[TopPanel] ✅ Panel injected successfully (hidden by default)');
     }
 
     // Compress WhatsApp to make room for the panel
     function compressWhatsAppContent() {
         const whatsappRoot = document.getElementById('app');
         if (whatsappRoot) {
-            whatsappRoot.style.marginTop = '48px'; // Height of top panel
+            whatsappRoot.style.marginTop = '64px'; // Height of top panel (updated to 64px)
             console.log('[TopPanel] ✅ WhatsApp content compressed');
+        }
+    }
+
+    // Show top panel
+    function showTopPanel() {
+        const panel = document.getElementById('wa-extractor-top-panel');
+        if (panel) {
+            panel.classList.remove('hidden');
+            compressWhatsAppContent();
+            console.log('[TopPanel] ✅ Top panel shown');
+        }
+    }
+
+    // Hide top panel
+    function hideTopPanel() {
+        const panel = document.getElementById('wa-extractor-top-panel');
+        if (panel) {
+            panel.classList.add('hidden');
+            // Restore WhatsApp to normal size
+            const whatsappRoot = document.getElementById('app');
+            if (whatsappRoot) {
+                whatsappRoot.style.marginTop = '0';
+            }
+            console.log('[TopPanel] ✅ Top panel hidden');
         }
     }
 
@@ -109,20 +132,21 @@
                 });
             });
         });
+    }
 
-        // Minimize button
-        const minimizeBtn = panel.querySelector('.top-panel-minimize');
-        if (minimizeBtn) {
-            minimizeBtn.addEventListener('click', () => {
-                panel.classList.toggle('minimized');
-                const whatsappRoot = document.getElementById('app');
-                if (whatsappRoot) {
-                    whatsappRoot.style.marginTop = panel.classList.contains('minimized') ? '0' : '48px';
-                }
-                minimizeBtn.querySelector('span').textContent = 
-                    panel.classList.contains('minimized') ? '+' : '−';
-            });
-        }
+    // Listen for custom events from content.js (which receives messages from background)
+    function registerEventListeners() {
+        window.addEventListener('wa-extractor-show-top-panel', () => {
+            console.log('[TopPanel] Received show event');
+            showTopPanel();
+        });
+        
+        window.addEventListener('wa-extractor-hide-top-panel', () => {
+            console.log('[TopPanel] Received hide event');
+            hideTopPanel();
+        });
+        
+        console.log('[TopPanel] ✅ Event listeners registered');
     }
 
     // Initialize

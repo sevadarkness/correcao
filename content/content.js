@@ -137,6 +137,16 @@ async function handleMessage(message) {
                 success: true, 
                 name: WhatsAppExtractor?.getGroupName() || 'Grupo' 
             };
+        
+        case 'showTopPanel':
+            // Show top panel (handled by top-panel-injector.js via custom event)
+            window.dispatchEvent(new CustomEvent('wa-extractor-show-top-panel'));
+            return { success: true };
+        
+        case 'hideTopPanel':
+            // Hide top panel (handled by top-panel-injector.js via custom event)
+            window.dispatchEvent(new CustomEvent('wa-extractor-hide-top-panel'));
+            return { success: true };
             
         default:
             return { success: false, error: '⚠️ Operação não reconhecida. Recarregue a extensão.' };

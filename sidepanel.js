@@ -47,6 +47,9 @@ class PopupController {
     // INICIALIZAÇÃO
     // ========================================
     async init() {
+        // Notify background that side panel is open
+        this.notifyBackgroundPanelOpen();
+        
         // Verificar se as classes estão disponíveis
         this.waitForDependencies().then(() => {
             this.initializeComponents();
@@ -56,6 +59,34 @@ class PopupController {
             this.initStorage();
             this.checkWhatsAppTab();
         });
+    }
+
+    // Notify background that side panel has opened
+    notifyBackgroundPanelOpen() {
+        // Prevent duplicate port connections which would cause memory leaks and multiple event handlers
+        if (this.backgroundPort) {
+            console.log('[SidePanel] ⚠️ Already connected to background, skipping');
+            return;
+        }
+        
+        try {
+            // Establish connection to notify background of side panel state
+            const port = chrome.runtime.connect({ name: 'sidepanel' });
+            console.log('[SidePanel] 🔗 Connected to background');
+            
+            // Keep port reference to maintain connection while panel is open
+            this.backgroundPort = port;
+            
+            // Listen for disconnect and clean up
+            port.onDisconnect.addListener(() => {
+                console.log('[SidePanel] 🔌 Disconnected from background');
+                this.backgroundPort = null;
+            });
+        } catch (error) {
+            console.error('[SidePanel] Error connecting to background:', error);
+            // Extension context may be invalid - log and continue
+            this.backgroundPort = null;
+        }
     }
 
     waitForDependencies() {
