@@ -28,15 +28,31 @@ function injectPageScript() {
 injectPageScript();
 
 // ========================================
+// DYNAMIC TIMEOUT CALCULATION
+// ========================================
+function calculateTimeout(estimatedMembers = 100) {
+    const baseTimeout = 30000; // 30 seconds base
+    const extraPerMember = 100; // 100ms per estimated member
+    const maxTimeout = 180000; // maximum 3 minutes
+    
+    const calculated = baseTimeout + (estimatedMembers * extraPerMember);
+    return Math.min(calculated, maxTimeout);
+}
+
+// ========================================
 // COMUNICAÇÃO COM API INJETADA
 // ========================================
 function callPageAPI(type, data = {}) {
+    // Calculate dynamic timeout based on estimated members
+    const estimatedMembers = data.estimatedMembers || 100;
+    const timeoutDuration = calculateTimeout(estimatedMembers);
+    
     return new Promise((resolve) => {
         const timeout = setTimeout(() => {
             window.removeEventListener('message', handler);
             console.log('[WA Extractor] ⏱️ Timeout:', type);
             resolve({ success: false, error: 'Timeout' });
-        }, 30000); // Aumentado para 30s
+        }, timeoutDuration);
 
         function handler(event) {
             if (event.source !== window) return;

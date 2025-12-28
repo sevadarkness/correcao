@@ -942,6 +942,13 @@ class PopupController {
     // MOSTRAR RESULTADOS
     // ========================================
     showResults() {
+        // Check for 0 members found
+        if (this.extractedData.totalMembers === 0 || this.extractedData.members.length === 0) {
+            this.showError('⚠️ Nenhum membro encontrado. O grupo pode estar vazio ou você não tem permissão para ver os membros.');
+            this.setLoading(this.btnExtract, false);
+            return;
+        }
+
         if (this.resultGroupName) {
             this.resultGroupName.textContent = this.extractedData.groupName;
         }
