@@ -141,7 +141,14 @@ Contribuições são bem-vindas! Por favor:
 
 ## 📝 Changelog
 
-### v6.0.3 (Atual)
+### v6.0.8 (Atual)
+- ✅ Restrição do Side Panel apenas para WhatsApp Web
+- ✅ Side Panel não aparece em outras abas
+- ✅ Redirecionamento automático ao clicar fora do WhatsApp
+- ✅ Gerenciamento inteligente do Side Panel por aba
+- ✅ Configuração automática para abas existentes
+
+### v6.0.3
 - ✅ Filtragem de grupos inválidos/excluídos
 - ✅ Lock de extração para prevenir race conditions
 - ✅ Mensagens de erro humanizadas
