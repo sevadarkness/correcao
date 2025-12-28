@@ -1,5 +1,5 @@
-// content.js - WhatsApp Group Extractor v6.0.2 (CORREÇÃO COMPLETA)
-console.log('[WA Extractor] Content script v6.0.2 carregado');
+// content.js - WhatsApp Group Extractor v6.0.3 (CORREÇÃO COMPLETA)
+console.log('[WA Extractor] Content script v6.0.3 carregado');
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -28,15 +28,31 @@ function injectPageScript() {
 injectPageScript();
 
 // ========================================
+// DYNAMIC TIMEOUT CALCULATION
+// ========================================
+function calculateTimeout(estimatedMembers = 100) {
+    const baseTimeout = 30000; // 30 seconds base
+    const extraPerMember = 100; // 100ms per estimated member
+    const maxTimeout = 180000; // maximum 3 minutes
+    
+    const calculated = baseTimeout + (estimatedMembers * extraPerMember);
+    return Math.min(calculated, maxTimeout);
+}
+
+// ========================================
 // COMUNICAÇÃO COM API INJETADA
 // ========================================
 function callPageAPI(type, data = {}) {
+    // Calculate dynamic timeout based on estimated members
+    const estimatedMembers = data.estimatedMembers || 100;
+    const timeoutDuration = calculateTimeout(estimatedMembers);
+    
     return new Promise((resolve) => {
         const timeout = setTimeout(() => {
             window.removeEventListener('message', handler);
             console.log('[WA Extractor] ⏱️ Timeout:', type);
-            resolve({ success: false, error: 'Timeout' });
-        }, 30000); // Aumentado para 30s
+            resolve({ success: false, error: '⏱️ A conexão está lenta. Verifique sua internet e tente novamente.' });
+        }, timeoutDuration);
 
         function handler(event) {
             if (event.source !== window) return;
@@ -97,21 +113,21 @@ async function handleMessage(message) {
                 WhatsAppExtractor.pauseExtraction();
                 return { success: true };
             }
-            return { success: false, error: 'Extractor não disponível' };
+            return { success: false, error: '🔄 Por favor, recarregue a página do WhatsApp Web e tente novamente.' };
 
         case 'resumeExtraction':
             if (typeof WhatsAppExtractor !== 'undefined') {
                 WhatsAppExtractor.resumeExtraction();
                 return { success: true };
             }
-            return { success: false, error: 'Extractor não disponível' };
+            return { success: false, error: '🔄 Por favor, recarregue a página do WhatsApp Web e tente novamente.' };
 
         case 'stopExtraction':
             if (typeof WhatsAppExtractor !== 'undefined') {
                 WhatsAppExtractor.stopExtraction();
                 return { success: true };
             }
-            return { success: false, error: 'Extractor não disponível' };
+            return { success: false, error: '🔄 Por favor, recarregue a página do WhatsApp Web e tente novamente.' };
             
         case 'getGroupName':
             return { 
@@ -120,7 +136,7 @@ async function handleMessage(message) {
             };
             
         default:
-            return { success: false, error: 'Ação desconhecida' };
+            return { success: false, error: '⚠️ Operação não reconhecida. Recarregue a extensão.' };
     }
 }
 
@@ -174,17 +190,23 @@ async function getGroupsFromDOM(includeArchived = true) {
 
     const chatList = document.querySelector('#pane-side');
     if (!chatList) {
-        return { success: false, error: 'Lista de chats não encontrada.' };
+        return { success: false, error: '📱 Lista de chats não encontrada. Verifique se o WhatsApp Web está carregado.' };
     }
 
     const chatElements = chatList.querySelectorAll('[data-id]');
 
-    // Textos inválidos que indicam grupos excluídos/desativados
-    const invalidTexts = [
-        'você foi removido', 'you were removed',
-        'você saiu', 'you left',
-        'grupo excluído', 'group deleted',
-        'não é mais participante', 'no longer a participant'
+    // Lista expandida de indicadores de grupos inválidos
+    const invalidIndicators = [
+        // Português
+        'você foi removido', 'você saiu', 'grupo excluído', 
+        'não é mais participante', 'este grupo foi excluído',
+        'grupo desativado', 'você não faz mais parte',
+        'este grupo não existe mais', 'grupo foi desativado',
+        // English
+        'you were removed', 'you left', 'group deleted',
+        'no longer a participant', 'this group was deleted',
+        'group deactivated', 'you are no longer a member',
+        'this group no longer exists'
     ];
 
     for (const element of chatElements) {
@@ -199,13 +221,14 @@ async function getGroupsFromDOM(includeArchived = true) {
         if (!name || name.length < 2 || name.length > 100) continue;
         if (/^(ontem|hoje|yesterday|today|\d{1,2}:\d{2})/i.test(name)) continue;
 
-        // Verificar o texto completo do elemento para detectar grupos inválidos
+        // Verificar TANTO no elemento quanto na metadata do grupo
         const elementText = element.textContent?.toLowerCase() || '';
+        const nameToCheck = (name || '').toLowerCase();
         let isInvalidGroup = false;
         
-        for (const invalidText of invalidTexts) {
-            if (elementText.includes(invalidText.toLowerCase())) {
-                console.log(`[WA Extractor] ⚠️ Grupo filtrado (texto inválido): "${name}"`);
+        for (const indicator of invalidIndicators) {
+            if (elementText.includes(indicator) || nameToCheck.includes(indicator)) {
+                console.log(`[WA Extractor] ⚠️ Grupo filtrado: "${name}" - motivo: "${indicator}"`);
                 isInvalidGroup = true;
                 break;
             }
@@ -261,7 +284,7 @@ async function navigateToGroupWithRetry(groupId, groupName, isArchived, maxRetri
         }
     }
     
-    return { success: false, error: 'Máximo de tentativas excedido' };
+    return { success: false, error: '❌ Não foi possível abrir o grupo após várias tentativas. Tente novamente.' };
 }
 
 // ========================================
@@ -348,7 +371,7 @@ async function navigateToGroup(groupId, groupName, isArchived = false) {
             }
         }
 
-        throw new Error(`Não foi possível abrir o grupo "${groupName}". Tente clicar manualmente no grupo e depois extrair.`);
+        throw new Error(`📱 Não foi possível abrir as informações do grupo "${groupName}". Tente clicar manualmente no grupo e depois extrair.`);
 
     } catch (error) {
         console.error('[WA Extractor] ❌ Erro:', error);
@@ -964,7 +987,7 @@ async function extractMembers() {
         console.log('[WA Extractor] Iniciando extração...');
 
         if (typeof WhatsAppExtractor === 'undefined') {
-            throw new Error('Módulo de extração não carregado. Recarregue a página.');
+            throw new Error('🔄 Módulo de extração não carregado. Recarregue a página do WhatsApp Web.');
         }
 
         // Obter estimativa de membros do grupo (se disponível no selectedGroup)

@@ -1,11 +1,45 @@
-// inject.js - WhatsApp Group Extractor v6.0.2 (CORREÇÃO COMPLETA PARA ARQUIVADOS)
+// inject.js - WhatsApp Group Extractor v6.0.3 (CORREÇÃO COMPLETA PARA ARQUIVADOS)
 (function() {
     if (window.__waExtractorAPI) {
         console.log('[WA API] API já inicializada');
         return;
     }
 
-    console.log('[WA API] Inicializando v6.0.2 com suporte total a arquivados...');
+    console.log('[WA API] Inicializando v6.0.3 com suporte total a arquivados...');
+
+    // Lista expandida de indicadores de grupos inválidos
+    const invalidIndicators = [
+        // Português
+        'você foi removido', 'você saiu', 'grupo excluído', 
+        'não é mais participante', 'este grupo foi excluído',
+        'grupo desativado', 'você não faz mais parte',
+        'este grupo não existe mais', 'grupo foi desativado',
+        // English
+        'you were removed', 'you left', 'group deleted',
+        'no longer a participant', 'this group was deleted',
+        'group deactivated', 'you are no longer a member',
+        'this group no longer exists'
+    ];
+
+    // Verificar se grupo é válido
+    function isGroupValid(group) {
+        const nameToCheck = (group.name || '').toLowerCase();
+        
+        for (const indicator of invalidIndicators) {
+            if (nameToCheck.includes(indicator)) {
+                console.log(`[WA API] ⚠️ Grupo filtrado: "${group.name}" - motivo: "${indicator}"`);
+                return false;
+            }
+        }
+        
+        // Verificar flags de metadata se disponíveis
+        if (group.isReadOnly === true || group.suspended === true || group.isParticipant === false) {
+            console.log(`[WA API] ⚠️ Grupo filtrado por metadata: "${group.name}"`);
+            return false;
+        }
+        
+        return true;
+    }
 
     // Helper para require seguro
     function safeRequire(moduleName) {
@@ -79,8 +113,12 @@
                         isArchived: g.archive === true,
                         isMuted: g.mute?.isMuted === true,
                         unreadCount: g.unreadCount || 0,
-                        lastMessageTime: g.t || 0
-                    }));
+                        lastMessageTime: g.t || 0,
+                        isReadOnly: g.isReadOnly,
+                        suspended: g.suspended,
+                        isParticipant: g.groupMetadata?.isParticipant
+                    }))
+                    .filter(g => isGroupValid(g)); // Filtrar grupos inválidos
 
                 if (onlyArchived) {
                     groups = groups.filter(g => g.isArchived);
@@ -337,5 +375,5 @@
         }
     });
 
-    console.log('[WA API] ✅ API v6.0.2 pronta! (Suporte completo a arquivados)');
+    console.log('[WA API] ✅ API v6.0.3 pronta! (Suporte completo a arquivados)');
 })();

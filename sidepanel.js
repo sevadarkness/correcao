@@ -1,4 +1,4 @@
-// sidepanel.js - WhatsApp Group Extractor v6.0.2 - Side Panel Implementation
+// sidepanel.js - WhatsApp Group Extractor v6.0.3 - Side Panel Implementation
 class PopupController {
     constructor() {
         // Estado
@@ -186,7 +186,7 @@ class PopupController {
             await this.saveState();
         } catch (error) {
             console.error('[SidePanel] Erro ao pausar:', error);
-            this.showError('Erro ao pausar extração');
+            this.showError('❌ Não foi possível pausar a extração. Tente novamente.');
         }
     }
 
@@ -214,7 +214,7 @@ class PopupController {
             await this.saveState();
         } catch (error) {
             console.error('[SidePanel] Erro ao retomar:', error);
-            this.showError('Erro ao retomar extração');
+            this.showError('❌ Não foi possível retomar a extração. Tente novamente.');
         }
     }
 
@@ -250,7 +250,7 @@ class PopupController {
             }
         } catch (error) {
             console.error('[SidePanel] Erro ao parar:', error);
-            this.showError('Erro ao parar extração');
+            this.showError('❌ Não foi possível parar a extração. Tente fechar e reabrir a extensão.');
         }
     }
 
@@ -307,6 +307,9 @@ class PopupController {
         // History elements
         this.historyList = document.getElementById('historyList');
         this.historyStats = document.getElementById('historyStats');
+        
+        // Pro Mode indicator
+        this.proModeIndicator = document.getElementById('proModeIndicator');
     }
 
     // ========================================
@@ -739,6 +742,13 @@ class PopupController {
             return;
         }
 
+        // Verificar se já há uma extração em andamento (client-side check for immediate UX)
+        // Note: Background script also enforces a lock for true race condition prevention
+        if (this.extractionState.isRunning) {
+            this.showError('⏳ Aguarde! Já existe uma extração em andamento.');
+            return;
+        }
+
         try {
             if (this.performanceMonitor) {
                 this.performanceMonitor.mark('extraction-start');
@@ -767,10 +777,11 @@ class PopupController {
                 state: this.extractionState
             }).catch(console.error);
             
-            // Mostrar controles de extração
+            // Mostrar controles de extração e Pro Mode badge
             this.extractionControls?.classList.remove('hidden');
             this.btnPauseExtraction?.classList.remove('hidden');
             this.btnResumeExtraction?.classList.add('hidden');
+            this.proModeIndicator?.classList.remove('hidden');
 
             await this.saveState();
 
@@ -824,6 +835,7 @@ class PopupController {
         } finally {
             this.hideStatus();
             this.extractionControls?.classList.add('hidden');
+            this.proModeIndicator?.classList.add('hidden');
         }
     }
 
@@ -936,6 +948,13 @@ class PopupController {
     // MOSTRAR RESULTADOS
     // ========================================
     showResults() {
+        // Check for 0 members found
+        if (this.extractedData.totalMembers === 0 || this.extractedData.members.length === 0) {
+            this.showError('⚠️ Nenhum membro encontrado. O grupo pode estar vazio ou você não tem permissão para ver os membros.');
+            this.setLoading(this.btnExtract, false);
+            return;
+        }
+
         if (this.resultGroupName) {
             this.resultGroupName.textContent = this.extractedData.groupName;
         }
@@ -1024,7 +1043,7 @@ class PopupController {
             console.log('[SidePanel] ✅ CSV exportado:', filename);
         } catch (error) {
             console.error('[SidePanel] Erro ao exportar CSV:', error);
-            this.showError('Erro ao exportar CSV');
+            this.showError('❌ Não foi possível exportar o arquivo CSV. Tente novamente.');
         }
     }
 
@@ -1038,7 +1057,7 @@ class PopupController {
             console.log('[SidePanel] ✅ JSON exportado:', filename);
         } catch (error) {
             console.error('[SidePanel] Erro ao exportar JSON:', error);
-            this.showError('Erro ao exportar JSON');
+            this.showError('❌ Não foi possível exportar o arquivo JSON. Tente novamente.');
         }
     }
 
@@ -1066,7 +1085,7 @@ class PopupController {
             console.log('[SidePanel] ✅ Lista copiada');
         } catch (error) {
             console.error('[SidePanel] Erro ao copiar:', error);
-            this.showError('Não foi possível copiar');
+            this.showError('❌ Não foi possível copiar a lista. Verifique as permissões do navegador.');
         }
     }
 
@@ -1103,7 +1122,7 @@ class PopupController {
             alert('✅ Dados copiados!\n\n1. Abra o Google Sheets\n2. Cole com Ctrl+V\n3. Pronto!');
         } catch (error) {
             console.error('[SidePanel] Erro ao copiar para Sheets:', error);
-            this.showError('Erro ao copiar para Sheets');
+            this.showError('❌ Não foi possível copiar para o Google Sheets. Tente novamente.');
         }
     }
 
@@ -1124,7 +1143,7 @@ class PopupController {
             console.log('[SidePanel] ✅ Google Sheets aberto');
         } catch (error) {
             console.error('[SidePanel] Erro ao abrir Sheets:', error);
-            this.showError('Erro ao abrir Google Sheets');
+            this.showError('❌ Não foi possível abrir o Google Sheets. Tente novamente.');
         }
     }
 
@@ -1142,7 +1161,7 @@ class PopupController {
             this.goToStep(4);
         } catch (error) {
             console.error('[SidePanel] Erro ao carregar histórico:', error);
-            this.showError('Erro ao carregar histórico');
+            this.showError('❌ Não foi possível carregar o histórico. Tente novamente.');
         } finally {
             this.hideStatus();
         }
@@ -1249,7 +1268,7 @@ class PopupController {
             }
         } catch (error) {
             console.error('[SidePanel] Erro ao visualizar extração:', error);
-            this.showError('Erro ao carregar extração');
+            this.showError('❌ Não foi possível carregar esta extração. Tente novamente.');
         }
     }
 
@@ -1276,7 +1295,7 @@ class PopupController {
             }
         } catch (error) {
             console.error('[SidePanel] Erro ao baixar CSV:', error);
-            this.showError('Erro ao baixar CSV');
+            this.showError('❌ Não foi possível baixar o arquivo CSV. Tente novamente.');
         }
     }
 
@@ -1288,7 +1307,7 @@ class PopupController {
             this.showHistory();
         } catch (error) {
             console.error('[SidePanel] Erro ao deletar:', error);
-            this.showError('Erro ao deletar extração');
+            this.showError('❌ Não foi possível deletar a extração. Tente novamente.');
         }
     }
 
@@ -1307,7 +1326,7 @@ class PopupController {
             await this.showHistory();
         } catch (error) {
             console.error('[SidePanel] Erro ao limpar histórico:', error);
-            this.showError('Erro ao limpar histórico');
+            this.showError('❌ Não foi possível limpar o histórico. Tente novamente.');
         } finally {
             this.hideStatus();
         }
