@@ -811,6 +811,9 @@ class PopupController {
 
     async extractMembers() {
         const MAX_EXTRACTION_RETRIES = 3;
+        const RETRY_DELAY_MS = 1500;
+        const INITIAL_WAIT_MS = 2000;
+        const RETRY_WAIT_MS = 1000;
         let lastError = null;
         
         for (let attempt = 1; attempt <= MAX_EXTRACTION_RETRIES; attempt++) {
@@ -820,7 +823,7 @@ class PopupController {
                 // Atualizar UI
                 if (attempt > 1) {
                     this.showStatus(`🔄 Retry automático (${attempt}/${MAX_EXTRACTION_RETRIES})...`, 25);
-                    await this.delay(1500); // Delay antes do retry
+                    await this.delay(RETRY_DELAY_MS);
                 }
                 
                 const groupStatus = this.selectedGroup.isArchived ? 'arquivado' : 'ativo';
@@ -833,26 +836,26 @@ class PopupController {
                     isArchived: this.selectedGroup.isArchived
                 });
                 
-                if (!navResult.success) {
-                    throw new Error(navResult.error || 'Falha na navegação');
+                if (!navResult || !navResult.success) {
+                    throw new Error(navResult?.error || 'Falha na navegação');
                 }
                 
                 this.showStatus('📂 Abrindo informações...', 30);
                 // Aguardar mais tempo na primeira tentativa
-                const waitTime = attempt === 1 ? 2000 : 1000;
+                const waitTime = attempt === 1 ? INITIAL_WAIT_MS : RETRY_WAIT_MS;
                 await this.delay(waitTime);
                 
                 this.showStatus('🔍 Iniciando extração...', 40);
                 // Tentar extrair
                 const extractResult = await this.sendMessage('extractMembers');
                 
-                if (extractResult.success) {
+                if (extractResult && extractResult.success) {
                     console.log(`[Popup] ✅ Extração bem-sucedida na tentativa ${attempt}`);
                     return extractResult; // Sucesso!
                 }
                 
                 // Se retornou mas sem sucesso
-                lastError = new Error(extractResult.error || 'Extração falhou');
+                lastError = new Error(extractResult?.error || 'Extração falhou');
                 console.log(`[Popup] ⚠️ Tentativa ${attempt} falhou: ${lastError.message}`);
                 
             } catch (error) {
