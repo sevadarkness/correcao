@@ -8,8 +8,6 @@ chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(consol
 let extractionLock = false;
 let extractionLockTimeout = null;
 const LOCK_TIMEOUT_MS = 300000; // 5 minutes timeout for safety
-const SIDE_PANEL_OPEN_DELAY = 1000; // Delay before opening Side Panel after redirect
-const TAB_LOAD_TIMEOUT = 30000; // Maximum time to wait for tab to load (30 seconds)
 
 // Function to clear lock with timeout
 function setExtractionLock(value) {
