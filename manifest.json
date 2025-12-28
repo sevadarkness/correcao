@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "WhatsApp Group Member Extractor",
-  "version": "6.0.7",
+  "version": "6.0.8",
   "description": "Extrai membros de grupos do WhatsApp com Virtual Scroll, IndexedDB e Google Sheets export",
   "permissions": [
     "activeTab",
@@ -31,9 +31,11 @@
     {
       "matches": ["https://web.whatsapp.com/*"],
       "js": [
+        "content/top-panel-injector.js",
         "content/extractor-v6-optimized.js",
         "content/content.js"
       ],
+      "css": ["content/top-panel.css"],
       "run_at": "document_idle"
     }
   ],

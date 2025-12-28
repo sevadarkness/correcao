@@ -73,197 +73,13 @@ body {
 }
 
 /* ========================================
-   TOP PANEL - NAVIGATION TABS
-   
-   DESIGN NOTES:
-   - Fixed height: 56px
-   - Uses same color scheme as header
-   - Tabs have hover and active states
-   - Active tab has green underline indicator
-   - Smooth transitions on all interactions
-   
-   CUSTOMIZATION:
-   - To change tab height: modify height property
-   - To change active indicator: modify box-shadow in .top-panel-tab.active
-   - To add more space for left/right sections: adjust flex values
-======================================== */
-.top-panel {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    height: 56px;
-    padding: 0 var(--spacing-lg);
-    background: rgba(0, 0, 0, 0.25);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: var(--shadow-sm);
-    backdrop-filter: blur(10px);
-}
-
-.top-panel-left,
-.top-panel-right {
-    flex: 0 0 80px;
-}
-
-.top-panel-center {
-    flex: 1;
-    display: flex;
-    justify-content: center;
-}
-
-.top-panel-tabs {
-    display: flex;
-    gap: var(--spacing-xs);
-}
-
-.top-panel-tab {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-    padding: 10px 20px;
-    border: none;
-    background: transparent;
-    color: var(--text-secondary);
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    border-radius: var(--radius-md);
-    transition: all var(--transition-normal);
-    position: relative;
-    letter-spacing: 0.3px;
-}
-
-.top-panel-tab .tab-icon {
-    font-size: 16px;
-    transition: transform var(--transition-fast);
-}
-
-.top-panel-tab:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--text-primary);
-}
-
-.top-panel-tab:hover .tab-icon {
-    transform: scale(1.1);
-}
-
-.top-panel-tab.active {
-    background: rgba(37, 211, 102, 0.2);
-    color: var(--text-primary);
-    box-shadow: inset 0 -3px 0 var(--color-primary);
-}
-
-.top-panel-tab.active .tab-icon {
-    transform: scale(1.15);
-}
-
-/* Content Wrapper */
-.content-wrapper {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    position: relative;
-}
-
-.tab-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    animation: fadeIn var(--transition-normal);
-}
-
-.tab-content.hidden {
-    display: none;
-}
-
-/* Tools Placeholder Styles */
-.tools-placeholder {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: var(--spacing-xl);
-    text-align: center;
-    animation: fadeIn var(--transition-slow);
-}
-
-.placeholder-icon {
-    font-size: 72px;
-    margin-bottom: var(--spacing-lg);
-    filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3));
-    animation: float 3s ease-in-out infinite;
-}
-
-@keyframes float {
-    0%, 100% {
-        transform: translateY(0px);
-    }
-    50% {
-        transform: translateY(-10px);
-    }
-}
-
-.placeholder-title {
-    font-size: 24px;
-    font-weight: 700;
-    margin-bottom: var(--spacing-md);
-    letter-spacing: 0.5px;
-}
-
-.placeholder-text {
-    font-size: 15px;
-    opacity: 0.85;
-    margin-bottom: var(--spacing-xl);
-    max-width: 400px;
-    line-height: 1.6;
-}
-
-.placeholder-info {
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: var(--radius-md);
-    padding: var(--spacing-lg);
-    max-width: 400px;
-    backdrop-filter: blur(10px);
-    box-shadow: var(--shadow-md);
-}
-
-.placeholder-info p {
-    font-size: 14px;
-    margin-bottom: var(--spacing-md);
-    text-align: left;
-}
-
-.placeholder-list {
-    list-style: none;
-    text-align: left;
-    font-size: 13px;
-    line-height: 2;
-    opacity: 0.9;
-}
-
-.placeholder-list li {
-    padding-left: var(--spacing-md);
-    position: relative;
-}
-
-.placeholder-list li::before {
-    content: "✓";
-    position: absolute;
-    left: 0;
-    color: var(--color-primary);
-    font-weight: 700;
-}
-
-/* ========================================
    HEADER
 ======================================== */
 .header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--spacing-lg) var(--spacing-lg);
+    padding: var(--spacing-md) var(--spacing-md);
     background: rgba(0, 0, 0, 0.3);
     border-bottom: 1px solid rgba(255, 255, 255, 0.12);
     box-shadow: var(--shadow-sm);
@@ -272,18 +88,18 @@ body {
 .logo {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 10px;
 }
 
 .logo-icon {
-    font-size: 36px;
+    font-size: 28px;
     filter: drop-shadow(0 3px 6px rgba(0,0,0,0.3));
 }
 
 .logo h1 {
-    font-size: 1.1rem;
+    font-size: 0.95rem;
     font-weight: 800;
-    letter-spacing: 1px;
+    letter-spacing: 0.8px;
     text-transform: uppercase;
     
     /* Efeito 3D */
@@ -297,7 +113,7 @@ body {
 .header-actions {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
 }
 
 .btn-icon-header {
@@ -396,12 +212,12 @@ body {
 ======================================== */
 .step {
     flex: 1;
-    padding: var(--spacing-md) var(--spacing-lg);
+    padding: var(--spacing-sm) var(--spacing-md);
     display: flex;
     flex-direction: column;
     overflow-y: auto;
     animation: fadeIn var(--transition-normal);
-    gap: var(--spacing-md);
+    gap: var(--spacing-sm);
 }
 
 .step.hidden {
