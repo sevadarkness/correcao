@@ -1,5 +1,5 @@
-// background.js - WhatsApp Group Extractor v6.0.1 - BACKGROUND PERSISTENCE
-console.log('[WA Extractor] Background script carregado v6.0.1');
+// background.js - WhatsApp Group Extractor v6.0.2 - BACKGROUND PERSISTENCE
+console.log('[WA Extractor] Background script carregado v6.0.2');
 
 // Estado persistente em background
 let extractionState = {
@@ -12,7 +12,7 @@ let extractionState = {
 };
 
 // Configurar Side Panel
-chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false }).catch(console.error);
+chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(console.error);
 
 // Listener para abrir Side Panel ao clicar no ícone
 chrome.action.onClicked.addListener(async (tab) => {

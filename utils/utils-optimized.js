@@ -1,4 +1,4 @@
-// utils-optimized.js - Utilitários de Performance e Otimização v6.0.1
+// utils-optimized.js - Utilitários de Performance e Otimização v6.0.2
 
 // ========================================
 // DEBOUNCE E THROTTLE
@@ -534,4 +534,4 @@ window.PerformanceMonitor = PerformanceMonitor;
 window.VirtualScroll = VirtualScroll;
 window.BatchProcessor = BatchProcessor;
 
-console.log('[Utils] ✅ Performance utilities v6.0.1 loaded');
+console.log('[Utils] ✅ Performance utilities v6.0.2 loaded');

@@ -1,4 +1,4 @@
-// storage.js - IndexedDB Storage v6.0.1
+// storage.js - IndexedDB Storage v6.0.2
 
 class ExtractionStorage {
     constructor() {
@@ -81,7 +81,7 @@ class ExtractionStorage {
                 isArchived: data.isArchived || false,
                 extractedAt: data.extractedAt || new Date().toISOString(),
                 metadata: {
-                    version: '6.0.1',
+                    version: '6.0.2',
                     browser: navigator.userAgent,
                     timestamp: Date.now()
                 }
@@ -369,4 +369,4 @@ function getStorage() {
 window.ExtractionStorage = ExtractionStorage;
 window.getStorage = getStorage;
 
-console.log('[Storage] ✅ Module v6.0.1 loaded');
+console.log('[Storage] ✅ Module v6.0.2 loaded');

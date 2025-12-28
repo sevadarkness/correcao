@@ -1,6 +1,6 @@
-// extractor-v6-optimized.js - WhatsApp Group Extractor v6.0.1 MEGA OTIMIZADO
+// extractor-v6-optimized.js - WhatsApp Group Extractor v6.0.2 MEGA OTIMIZADO
 const WhatsAppExtractor = {
-    version: '6.0.1',
+    version: '6.0.2',
     
     state: {
         isExtracting: false,
@@ -372,7 +372,7 @@ const WhatsAppExtractor = {
         this.initCaches();
 
         this.log('========================================');
-        this.log('INICIANDO SCROLL MEGA OTIMIZADO v6.0.1...');
+        this.log('INICIANDO SCROLL MEGA OTIMIZADO v6.0.2...');
         this.log('========================================');
 
         const CONFIG = this.CONFIG.SCROLL;
@@ -572,7 +572,7 @@ const WhatsAppExtractor = {
         }
 
         this.log('========================================');
-        this.log('✅ EXTRAÇÃO COMPLETA v6.0.1!');
+        this.log('✅ EXTRAÇÃO COMPLETA v6.0.2!');
         this.log(`📊 Total: ${this.state.members.size} membros únicos`);
         this.log(`📊 Scrolls: ${scrollAttempts} tentativas`);
         this.log(`📊 Velocidade média: ${(this.state.members.size / scrollAttempts).toFixed(2)} membros/scroll`);
@@ -753,7 +753,7 @@ const WhatsAppExtractor = {
             this.state.members.clear();
             this.state.memberCache.clear();
 
-            this.log('=== INICIANDO EXTRAÇÃO v6.0.1 MEGA OTIMIZADA ===');
+            this.log('=== INICIANDO EXTRAÇÃO v6.0.2 MEGA OTIMIZADA ===');
 
             this.state.groupName = this.getGroupName();
 
@@ -829,7 +829,7 @@ const WhatsAppExtractor = {
     },
 
     debugDOM() {
-        console.log('=== 🔍 DEBUG DOM v6.0.1 ===');
+        console.log('=== 🔍 DEBUG DOM v6.0.2 ===');
 
         const dialogs = document.querySelectorAll('[role="dialog"]');
         console.log(`Dialogs: ${dialogs.length}`);
@@ -867,6 +867,6 @@ WhatsAppExtractor.initCaches();
 window.WhatsAppExtractor = WhatsAppExtractor;
 window.debugWA = () => WhatsAppExtractor.debugDOM();
 
-console.log('[WA Extractor] ✅ v6.0.1 MEGA OTIMIZADO carregado');
+console.log('[WA Extractor] ✅ v6.0.2 MEGA OTIMIZADO carregado');
 console.log('[WA Extractor] 🚀 Performance: LRU Cache, Adaptive Scrolling, Debounced Updates');
 console.log('[WA Extractor] 💡 Use debugWA() no console para debug');

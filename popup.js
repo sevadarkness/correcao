@@ -1,4 +1,4 @@
-// popup.js - WhatsApp Group Extractor v6.0.1 COMPLETO E CORRIGIDO
+// popup.js - WhatsApp Group Extractor v6.0.2 COMPLETO E CORRIGIDO
 class PopupController {
     constructor() {
         // Estado
@@ -1390,7 +1390,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 // INICIALIZAÇÃO
 // ========================================
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('[Popup] 🚀 Inicializando v6.0.1 COMPLETO...');
+    console.log('[Popup] 🚀 Inicializando v6.0.2 COMPLETO...');
     console.log('[Popup] 📦 Features: Virtual Scroll + IndexedDB + Google Sheets');
     window.popupController = new PopupController();
 });
