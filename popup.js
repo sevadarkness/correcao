@@ -407,7 +407,17 @@ class PopupController {
             const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
             const tab = tabs[0];
 
-            if (!tab?.url?.includes('web.whatsapp.com')) {
+            // Validação segura de URL
+            let isWhatsAppWeb = false;
+            try {
+                const url = new URL(tab?.url || '');
+                isWhatsAppWeb = url.hostname === 'web.whatsapp.com';
+            } catch (e) {
+                // URL inválida
+                isWhatsAppWeb = false;
+            }
+
+            if (!isWhatsAppWeb) {
                 this.showError('❌ Abra o WhatsApp Web para usar esta extensão');
                 if (this.btnLoadGroups) this.btnLoadGroups.disabled = true;
             }

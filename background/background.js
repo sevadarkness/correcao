@@ -48,16 +48,24 @@ chrome.runtime.onInstalled.addListener((details) => {
 chrome.action.onClicked.addListener(async (tab) => {
     console.log('[WA Extractor] Ícone clicado, abrindo Side Panel...');
     
-    // Verificar se é WhatsApp Web
-    if (tab.url?.includes('web.whatsapp.com')) {
-        try {
-            await chrome.sidePanel.open({ tabId: tab.id });
-            console.log('[WA Extractor] ✅ Side Panel aberto');
-        } catch (error) {
-            console.error('[WA Extractor] Erro ao abrir Side Panel:', error);
+    // Verificar se é WhatsApp Web com validação segura de URL
+    try {
+        const url = new URL(tab.url || '');
+        const isWhatsAppWeb = url.hostname === 'web.whatsapp.com';
+        
+        if (isWhatsAppWeb) {
+            try {
+                await chrome.sidePanel.open({ tabId: tab.id });
+                console.log('[WA Extractor] ✅ Side Panel aberto');
+            } catch (error) {
+                console.error('[WA Extractor] Erro ao abrir Side Panel:', error);
+            }
+        } else {
+            // Abrir WhatsApp Web se não estiver aberto
+            chrome.tabs.create({ url: 'https://web.whatsapp.com' });
         }
-    } else {
-        // Abrir WhatsApp Web se não estiver aberto
+    } catch (error) {
+        // URL inválida, abrir WhatsApp Web
         chrome.tabs.create({ url: 'https://web.whatsapp.com' });
     }
 });
