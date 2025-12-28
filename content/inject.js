@@ -80,9 +80,38 @@
                         isMuted: g.mute?.isMuted === true,
                         unreadCount: g.unreadCount || 0,
                         lastMessageTime: g.t || 0,
-                        isDisabled: g.isReadOnly === true || g.suspended === true
+                        isDisabled: g.isReadOnly === true || g.suspended === true,
+                        isReadOnly: g.isReadOnly === true,
+                        isDeactivated: g.isDeactivated === true,
+                        isParticipant: g.groupMetadata?.participants?.some(p => p.isMe) === true
                     }))
-                    .filter(g => !g.isDisabled); // Filter out disabled groups
+                    .filter(g => {
+                        // Filter out groups where user is no longer a participant
+                        if (g.isReadOnly === true) {
+                            console.log('[WA API] 🚫 Filtering out readonly group:', g.name);
+                            return false;
+                        }
+                        
+                        // Filter out deactivated groups
+                        if (g.isDeactivated === true) {
+                            console.log('[WA API] 🚫 Filtering out deactivated group:', g.name);
+                            return false;
+                        }
+                        
+                        // Filter out groups where user is not a participant
+                        if (g.isParticipant !== true) {
+                            console.log('[WA API] 🚫 Filtering out non-participant group:', g.name);
+                            return false;
+                        }
+                        
+                        // Filter out disabled/suspended groups
+                        if (g.isDisabled) {
+                            console.log('[WA API] 🚫 Filtering out disabled group:', g.name);
+                            return false;
+                        }
+                        
+                        return true;
+                    });
 
                 if (onlyArchived) {
                     groups = groups.filter(g => g.isArchived);
