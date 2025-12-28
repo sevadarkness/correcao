@@ -10,6 +10,7 @@ const SESSION_CHECK_TIMEOUT_MS = 25000;
 const EXTRACTION_TOTAL_TIMEOUT_MS = 480000; // 8 min
 const PROGRESS_STALL_TIMEOUT_MS = 20000;
 const CONNECTING_BACKOFF_MS = [1000, 2000, 3500, 5000, 8000];
+const CONTENT_SCRIPT_READY_DELAY_MS = 1000; // Delay for content script to be ready on existing tabs
 
 // Job states
 const JobState = {
@@ -141,9 +142,11 @@ async function getOrCreateWorkerTab() {
     
     if (waTabs.length > 0) {
         // ✅ Use existing tab as worker
-        console.log(`[WA Extractor] ✅ Using existing tab: ${waTabs[0].id}`);
+        // Prefer active tab if available, otherwise use first tab
+        const targetTab = waTabs.find(tab => tab.active) || waTabs[0];
+        console.log(`[WA Extractor] ✅ Using existing tab: ${targetTab.id}`);
         return {
-            tabId: waTabs[0].id,
+            tabId: targetTab.id,
             created: false,  // Not created, already existed
             shouldClose: false  // DO NOT close at the end
         };
@@ -216,7 +219,7 @@ async function startHeadlessExtraction(jobId, groupId, groupName, isArchived) {
         } else {
             console.log('[WA Extractor] ✅ Using existing tab, skipping load wait');
             // Small delay to ensure content script is ready
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await new Promise(resolve => setTimeout(resolve, CONTENT_SCRIPT_READY_DELAY_MS));
         }
         
         // State: WAITING_READY

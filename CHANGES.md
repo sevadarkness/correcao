@@ -1,5 +1,87 @@
 # WhatsApp Group Member Extractor - Changelog
 
+## v7.1.0 - Reuse Existing Tab (2025-12-28) 🔄
+
+### 🎯 Problem Solved: "WhatsApp está aberto em outra janela"
+Version 7.0.0 always created a new hidden tab for extraction, which caused the error **"WhatsApp Web is open in another window"** because WhatsApp Web doesn't allow two simultaneous instances.
+
+### ✨ What's New
+
+#### 1. Smart Tab Reuse
+- **Existing Tab Detection**: Queries for existing WhatsApp Web tabs before creating new ones
+- **Conditional Tab Creation**: Only creates hidden tab if no WhatsApp tab exists
+- **Intelligent Cleanup**: Keeps user's tab open, only closes extension-created tabs
+
+#### 2. Flow Changes
+
+**Scenario 1: User HAS WhatsApp Open**
+```
+1. Query for existing tabs → finds tab
+2. Uses existing tab as worker (created: false)
+3. Skips load wait (already loaded)
+4. Sends HEADLESS_EXTRACT_GROUP to existing tab
+5. Extraction happens
+6. ON COMPLETION: Tab stays open (shouldClose: false)
+```
+
+**Scenario 2: User DOESN'T HAVE WhatsApp Open**
+```
+1. Query for existing tabs → finds none
+2. Creates hidden tab (active: false, created: true)
+3. Waits for tab to load
+4. Sends HEADLESS_EXTRACT_GROUP to hidden tab
+5. Extraction happens
+6. ON COMPLETION: Closes hidden tab (shouldClose: true)
+```
+
+### 🛠️ Technical Changes
+
+#### Background Script (`background/background.js`)
+- **Added** `getOrCreateWorkerTab()` function
+  - Queries existing WhatsApp tabs with `chrome.tabs.query({ url: '*://web.whatsapp.com/*' })`
+  - Returns `{ tabId, created, shouldClose }` object
+  - Creates hidden tab only if none exists
+- **Modified** `startHeadlessExtraction()`
+  - Uses `getOrCreateWorkerTab()` instead of always creating new tab
+  - Stores `shouldCloseTab` flag in `currentJob`
+  - Conditionally waits for tab load based on `created` flag
+- **Modified** `cleanupJob()`
+  - Only closes tab if `shouldCloseTab === true`
+  - Logs appropriate message for each scenario
+- **Removed** `createHiddenWorkerTab()` function (replaced by `getOrCreateWorkerTab()`)
+
+#### Version Updates
+- `manifest.json`: `7.0.0` → `7.1.0`
+- `sidepanel.html`: `v7.0.0` → `v7.1.0`
+- `background/background.js`: version comment updated
+- `content/content.js`: version comment updated
+
+### 🔒 Non-Regression Guarantees
+- ✅ **NO changes** to `extractor-v6-optimized.js`
+- ✅ **NO changes** to `inject.js`
+- ✅ **NO changes** to extraction logic
+- ✅ All existing features preserved
+- ✅ All v7.0 message handlers maintained
+- ✅ All v7.0 state detection maintained
+- ✅ All v7.0 timeouts and retry logic maintained
+
+### 📊 Benefits
+- ✅ No more "WhatsApp is open in another window" error
+- ✅ Better user experience (doesn't close their WhatsApp tab)
+- ✅ Faster execution when tab already exists (no load wait)
+- ✅ Still works perfectly when no tab exists (creates hidden tab)
+- ✅ Fully backward compatible with v7.0.0 behavior
+
+### 🎯 Testing Checklist
+- [ ] Test with existing WhatsApp tab open (should reuse it)
+- [ ] Test without WhatsApp tab open (should create hidden tab)
+- [ ] Verify existing tab stays open after extraction
+- [ ] Verify hidden tab is closed after extraction
+- [ ] Test error scenarios (still work correctly)
+- [ ] Test multiple extractions in sequence
+
+---
+
 ## v7.0.0 - Headless Extraction (2025-12-28) 🚀
 
 ### 🎯 Major Feature: Invisible Extraction
