@@ -1,5 +1,5 @@
-// content.js - WhatsApp Group Extractor v6.0.2 (CORREÇÃO COMPLETA)
-console.log('[WA Extractor] Content script v6.0.2 carregado');
+// content.js - WhatsApp Group Extractor v6.0.3 (CORREÇÃO COMPLETA)
+console.log('[WA Extractor] Content script v6.0.3 carregado');
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 

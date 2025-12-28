@@ -1,5 +1,5 @@
-// background.js - WhatsApp Group Extractor v6.0.2 - BACKGROUND PERSISTENCE
-console.log('[WA Extractor] Background script carregado v6.0.2');
+// background.js - WhatsApp Group Extractor v6.0.3 - BACKGROUND PERSISTENCE
+console.log('[WA Extractor] Background script carregado v6.0.3');
 
 // Flag global de lock para prevenir race conditions
 let extractionLock = false;

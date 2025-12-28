@@ -1,11 +1,11 @@
-// inject.js - WhatsApp Group Extractor v6.0.2 (CORREÇÃO COMPLETA PARA ARQUIVADOS)
+// inject.js - WhatsApp Group Extractor v6.0.3 (CORREÇÃO COMPLETA PARA ARQUIVADOS)
 (function() {
     if (window.__waExtractorAPI) {
         console.log('[WA API] API já inicializada');
         return;
     }
 
-    console.log('[WA API] Inicializando v6.0.2 com suporte total a arquivados...');
+    console.log('[WA API] Inicializando v6.0.3 com suporte total a arquivados...');
 
     // Lista expandida de indicadores de grupos inválidos
     const invalidIndicators = [
@@ -375,5 +375,5 @@
         }
     });
 
-    console.log('[WA API] ✅ API v6.0.2 pronta! (Suporte completo a arquivados)');
+    console.log('[WA API] ✅ API v6.0.3 pronta! (Suporte completo a arquivados)');
 })();
