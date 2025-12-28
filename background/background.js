@@ -76,7 +76,7 @@ chrome.runtime.onConnect.addListener(async (port) => {
                 // Send message to show the top panel
                 chrome.tabs.sendMessage(targetTabId, { action: 'showTopPanel' })
                     .then(() => console.log('[WA Extractor] ✅ Show top panel sent to tab', targetTabId))
-                    .catch(err => console.log('[WA Extractor] ⚠️ Error:', err.message));
+                    .catch(err => console.log('[WA Extractor] ⚠️ Show top panel failed:', err.message));
                 
                 // Save targetTabId in the port object for use in disconnect
                 port.targetTabId = targetTabId;
@@ -94,7 +94,7 @@ chrome.runtime.onConnect.addListener(async (port) => {
             // Use the targetTabId saved in the port object
             if (port.targetTabId) {
                 chrome.tabs.sendMessage(port.targetTabId, { action: 'hideTopPanel' })
-                    .catch(err => console.log('[WA Extractor] ⚠️ Hide error:', err.message));
+                    .catch(err => console.log('[WA Extractor] ⚠️ Hide top panel failed:', err.message));
             }
         });
     }
