@@ -2,6 +2,11 @@
 console.log('[WA Extractor] Background script carregado v7.1.0 - Headless Mode');
 
 // ========================================
+// UTILITY FUNCTIONS
+// ========================================
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// ========================================
 // HEADLESS EXTRACTION CONSTANTS
 // ========================================
 const WORKER_BOOT_TIMEOUT_MS = 30000;
@@ -142,7 +147,8 @@ async function getOrCreateWorkerTab() {
     
     if (waTabs.length > 0) {
         // ✅ Use existing tab as worker
-        // Prefer active tab if available, otherwise use first tab
+        // Prefer active tab if available to minimize disruption to user's workflow
+        // Otherwise use first available tab
         const targetTab = waTabs.find(tab => tab.active) || waTabs[0];
         console.log(`[WA Extractor] ✅ Using existing tab: ${targetTab.id}`);
         return {
@@ -219,7 +225,7 @@ async function startHeadlessExtraction(jobId, groupId, groupName, isArchived) {
         } else {
             console.log('[WA Extractor] ✅ Using existing tab, skipping load wait');
             // Small delay to ensure content script is ready
-            await new Promise(resolve => setTimeout(resolve, CONTENT_SCRIPT_READY_DELAY_MS));
+            await sleep(CONTENT_SCRIPT_READY_DELAY_MS);
         }
         
         // State: WAITING_READY
@@ -369,7 +375,7 @@ async function checkWhatsAppState(tabId, jobId) {
         if (stateResult.state === 'CONNECTING') {
             // Wait and retry
             if (i < CONNECTING_BACKOFF_MS.length - 1) {
-                await new Promise(resolve => setTimeout(resolve, CONNECTING_BACKOFF_MS[i]));
+                await sleep(CONNECTING_BACKOFF_MS[i]);
                 continue;
             } else {
                 throw new Error('CONNECTING_TIMEOUT');
@@ -378,7 +384,7 @@ async function checkWhatsAppState(tabId, jobId) {
         
         // Unknown state, retry
         if (i < CONNECTING_BACKOFF_MS.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, CONNECTING_BACKOFF_MS[i]));
+            await sleep(CONNECTING_BACKOFF_MS[i]);
         }
     }
     
