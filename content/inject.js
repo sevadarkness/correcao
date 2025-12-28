@@ -99,7 +99,8 @@
                         }
                         
                         // Filter out groups where user is not a participant
-                        if (g.isParticipant !== true) {
+                        // Only filter if we have explicit confirmation (false), not when undefined/null
+                        if (g.isParticipant === false) {
                             console.log('[WA API] 🚫 Filtering out non-participant group:', g.name);
                             return false;
                         }
