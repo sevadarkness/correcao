@@ -1,6 +1,6 @@
-// extractor-v6-optimized.js - WhatsApp Group Extractor v6.0.2 MEGA OTIMIZADO
+// extractor-v6-optimized.js - WhatsApp Group Extractor v6.0.6 MEGA OTIMIZADO
 const WhatsAppExtractor = {
-    version: '6.0.2',
+    version: '6.0.6',
     
     state: {
         isExtracting: false,
@@ -14,7 +14,7 @@ const WhatsAppExtractor = {
         observer: null,
         lastScrollPosition: 0,
         estimatedMembers: 100, // Estimativa de membros para cálculo de progresso
-        lastReportedProgress: 40 // Track para garantir que progresso nunca regride
+        lastReportedProgress: 30 // Track para garantir que progresso nunca regride (começa em 30%)
     },
 
     // ========================================
@@ -371,11 +371,11 @@ const WhatsAppExtractor = {
 
         this.state.members.clear();
         this.state.memberCache.clear();
-        this.state.lastReportedProgress = 40; // Inicia em 40%
+        this.state.lastReportedProgress = 30; // Começa em 30% (início da fase de extração)
         this.initCaches();
 
         this.log('========================================');
-        this.log('INICIANDO SCROLL MEGA OTIMIZADO v6.0.2...');
+        this.log('INICIANDO SCROLL MEGA OTIMIZADO v6.0.6...');
         this.log(`📊 Membros estimados: ${this.state.estimatedMembers}`);
         this.log('========================================');
 
@@ -393,10 +393,10 @@ const WhatsAppExtractor = {
         const initialNew = this.extractVisibleMembersOptimized(scrollContainer);
         this.log(`✅ Captura inicial: ${initialNew} membros`);
 
-        // Função para calcular progresso proporcional (40% a 95%)
+        // Função para calcular progresso proporcional (30% a 95%)
         const calculateProgress = (membersCount) => {
-            const extractionRange = 55; // 40% até 95% = 55 pontos
-            const baseProgress = 40;
+            const extractionRange = 65; // 30% até 95% = 65 pontos
+            const baseProgress = 30;
             const memberProgress = (membersCount / this.state.estimatedMembers) * extractionRange;
             const totalProgress = Math.min(95, baseProgress + memberProgress);
             
@@ -599,7 +599,7 @@ const WhatsAppExtractor = {
         }
 
         this.log('========================================');
-        this.log('✅ EXTRAÇÃO COMPLETA v6.0.2!');
+        this.log('✅ EXTRAÇÃO COMPLETA v6.0.6!');
         this.log(`📊 Total: ${this.state.members.size} membros únicos`);
         this.log(`📊 Estimativa inicial: ${this.state.estimatedMembers} membros`);
         this.log(`📊 Scrolls: ${scrollAttempts} tentativas`);
@@ -815,9 +815,9 @@ const WhatsAppExtractor = {
             this.state.shouldStop = false;
             this.state.members.clear();
             this.state.memberCache.clear();
-            this.state.lastReportedProgress = 40; // Reset para nova extração
+            this.state.lastReportedProgress = 30; // Reset para nova extração (começa em 30%)
 
-            this.log('=== INICIANDO EXTRAÇÃO v6.0.2 MEGA OTIMIZADA ===');
+            this.log('=== INICIANDO EXTRAÇÃO v6.0.6 MEGA OTIMIZADA ===');
 
             this.state.groupName = this.getGroupName();
 
@@ -893,7 +893,7 @@ const WhatsAppExtractor = {
     },
 
     debugDOM() {
-        console.log('=== 🔍 DEBUG DOM v6.0.2 ===');
+        console.log('=== 🔍 DEBUG DOM v6.0.6 ===');
 
         const dialogs = document.querySelectorAll('[role="dialog"]');
         console.log(`Dialogs: ${dialogs.length}`);
@@ -931,6 +931,7 @@ WhatsAppExtractor.initCaches();
 window.WhatsAppExtractor = WhatsAppExtractor;
 window.debugWA = () => WhatsAppExtractor.debugDOM();
 
-console.log('[WA Extractor] ✅ v6.0.2 MEGA OTIMIZADO carregado');
+console.log('[WA Extractor] ✅ v6.0.6 MEGA OTIMIZADO carregado');
 console.log('[WA Extractor] 🚀 Performance: LRU Cache, Adaptive Scrolling, Debounced Updates');
+console.log('[WA Extractor] 📊 Progress: 30-95% for extraction (65% of bar)');
 console.log('[WA Extractor] 💡 Use debugWA() no console para debug');
