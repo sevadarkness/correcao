@@ -40,66 +40,62 @@ let extractionState = {
 // Configurar Side Panel para abrir ao clicar no ícone
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(console.error);
 
-// Track side panel state and associated tab
+// Track side panel state
 let sidePanelOpen = false;
-let sidePanelTabId = null;
 
-// Listen for action icon click to track which tab opened side panel
-chrome.action.onClicked.addListener(async (tab) => {
-    console.log('[WA Extractor] Action icon clicked on tab:', tab.id);
-    sidePanelTabId = tab.id;
-    // Side panel will be toggled by Chrome automatically
-});
+// NOTE: chrome.action.onClicked does NOT fire when openPanelOnActionClick: true is set
+// Therefore, we cannot rely on it to get the tab ID. Instead, we use chrome.tabs.query
+// inside the onConnect handler to find the WhatsApp Web tab.
 
 // Listen for side panel opening/closing
-chrome.runtime.onConnect.addListener((port) => {
+chrome.runtime.onConnect.addListener(async (port) => {
     if (port.name === 'sidepanel') {
         console.log('[WA Extractor] 🔗 Side panel connected');
         sidePanelOpen = true;
         
-        // Capture targetTabId in closure to ensure correct tab is used on disconnect
-        const capturedTabId = sidePanelTabId;
-        
-        // Send message to the specific tab where side panel was opened
-        if (capturedTabId !== null) {
-            chrome.tabs.sendMessage(capturedTabId, { action: 'showTopPanel' })
-                .then(() => console.log('[WA Extractor] ✅ Show top panel message sent to tab', capturedTabId))
-                .catch(err => {
-                    // More specific error handling
-                    if (err.message.includes('Receiving end does not exist')) {
-                        console.log('[WA Extractor] ⚠️ Tab closed or not on WhatsApp Web');
-                    } else if (err.message.includes('Cannot access')) {
-                        console.log('[WA Extractor] ⚠️ Cannot access tab (permissions or restricted page)');
-                    } else {
-                        console.log('[WA Extractor] ⚠️ Top panel message failed:', err.message);
-                    }
+        // Find the active WhatsApp Web tab
+        try {
+            const tabs = await chrome.tabs.query({ 
+                active: true, 
+                currentWindow: true,
+                url: 'https://web.whatsapp.com/*'
+            });
+            
+            // If no active tab found, try any WhatsApp tab
+            let targetTab = tabs[0];
+            if (!targetTab) {
+                const allWhatsAppTabs = await chrome.tabs.query({
+                    url: 'https://web.whatsapp.com/*'
                 });
-        } else {
-            console.warn('[WA Extractor] ⚠️ No tab ID available for showing top panel');
+                targetTab = allWhatsAppTabs[0];
+            }
+            
+            if (targetTab) {
+                const targetTabId = targetTab.id;
+                
+                // Send message to show the top panel
+                chrome.tabs.sendMessage(targetTabId, { action: 'showTopPanel' })
+                    .then(() => console.log('[WA Extractor] ✅ Show top panel sent to tab', targetTabId))
+                    .catch(err => console.log('[WA Extractor] ⚠️ Error:', err.message));
+                
+                // Save targetTabId in the port object for use in disconnect
+                port.targetTabId = targetTabId;
+            } else {
+                console.warn('[WA Extractor] ⚠️ No WhatsApp Web tab found');
+            }
+        } catch (err) {
+            console.error('[WA Extractor] Error finding WhatsApp tab:', err);
         }
         
         port.onDisconnect.addListener(() => {
             console.log('[WA Extractor] 🔌 Side panel disconnected');
             sidePanelOpen = false;
             
-            // Use captured tab ID to ensure correct tab gets the hide message
-            if (capturedTabId !== null) {
-                chrome.tabs.sendMessage(capturedTabId, { action: 'hideTopPanel' })
-                    .then(() => console.log('[WA Extractor] ✅ Hide top panel message sent to tab', capturedTabId))
-                    .catch(err => {
-                        // More specific error handling
-                        if (err.message.includes('Receiving end does not exist')) {
-                            console.log('[WA Extractor] ⚠️ Tab closed or navigated away');
-                        } else if (err.message.includes('Cannot access')) {
-                            console.log('[WA Extractor] ⚠️ Cannot access tab (permissions or restricted page)');
-                        } else {
-                            console.log('[WA Extractor] ⚠️ Top panel hide message failed:', err.message);
-                        }
-                    });
+            // Use the targetTabId saved in the port object
+            if (port.targetTabId) {
+                chrome.tabs.sendMessage(port.targetTabId, { action: 'hideTopPanel' })
+                    .catch(err => console.log('[WA Extractor] ⚠️ Hide error:', err.message));
             }
-            
-            // Clear the tab reference
-            sidePanelTabId = null;
         });
     }
 });
