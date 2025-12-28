@@ -1,5 +1,8 @@
-// background.js - WhatsApp Group Extractor v6.0.8 - BACKGROUND PERSISTENCE
-console.log('[WA Extractor] Background script carregado v6.0.8');
+// background.js - WhatsApp Group Extractor v6.0.9 - BACKGROUND PERSISTENCE
+console.log('[WA Extractor] Background script carregado v6.0.9');
+
+// Configurar comportamento padrão do Side Panel (ESSENCIAL!)
+chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(console.error);
 
 // Flag global de lock para prevenir race conditions
 let extractionLock = false;
@@ -89,73 +92,9 @@ chrome.tabs.query({}).then(async tabs => {
     );
 });
 
-// Listener para abrir Side Panel ao clicar no ícone
-chrome.action.onClicked.addListener(async (tab) => {
-    try {
-        const isWhatsApp = tab.url?.startsWith('https://web.whatsapp.com');
-        
-        if (isWhatsApp) {
-            // Já está no WhatsApp, abrir Side Panel
-            await chrome.sidePanel.setOptions({
-                tabId: tab.id,
-                enabled: true
-            });
-            await chrome.sidePanel.open({ tabId: tab.id });
-            console.log('[WA Extractor] Side Panel aberto');
-        } else {
-            // Não está no WhatsApp, abrir WhatsApp e depois o painel
-            const newTab = await chrome.tabs.create({ url: 'https://web.whatsapp.com' });
-            
-            // Timeout de segurança para remover listener se a aba não carregar
-            const timeoutId = setTimeout(() => {
-                chrome.tabs.onUpdated.removeListener(listener);
-                console.warn('[WA Extractor] Timeout ao aguardar carregamento da aba');
-            }, TAB_LOAD_TIMEOUT);
-            
-            // Aguardar a aba carregar
-            function listener(tabId, info) {
-                if (tabId === newTab.id && info.status === 'complete') {
-                    clearTimeout(timeoutId);
-                    
-                    // Aguardar um momento antes de abrir o Side Panel para garantir estabilidade
-                    setTimeout(async () => {
-                        try {
-                            await chrome.sidePanel.setOptions({
-                                tabId: newTab.id,
-                                enabled: true
-                            });
-                            await chrome.sidePanel.open({ tabId: newTab.id });
-                            console.log('[WA Extractor] Side Panel aberto após redirecionamento');
-                            chrome.tabs.onUpdated.removeListener(listener);
-                        } catch (e) {
-                            console.log('[WA Extractor] Erro ao abrir Side Panel:', e);
-                            // Tentar novamente se falhar na primeira vez
-                            setTimeout(async () => {
-                                try {
-                                    // Garantir que o painel está habilitado antes de tentar abrir
-                                    await chrome.sidePanel.setOptions({
-                                        tabId: newTab.id,
-                                        enabled: true
-                                    });
-                                    await chrome.sidePanel.open({ tabId: newTab.id });
-                                    console.log('[WA Extractor] Side Panel aberto após retry');
-                                    chrome.tabs.onUpdated.removeListener(listener);
-                                } catch (retryError) {
-                                    console.error('[WA Extractor] Falha ao abrir Side Panel após retry:', retryError);
-                                    chrome.tabs.onUpdated.removeListener(listener);
-                                }
-                            }, SIDE_PANEL_OPEN_DELAY);
-                        }
-                    }, SIDE_PANEL_OPEN_DELAY);
-                }
-            }
-            
-            chrome.tabs.onUpdated.addListener(listener);
-        }
-    } catch (error) {
-        console.error('[WA Extractor] Erro:', error);
-    }
-});
+// chrome.action.onClicked não é mais necessário porque setPanelBehavior
+// com openPanelOnActionClick: true automaticamente abre o painel ao clicar no ícone
+// A restrição por aba (enabled: true/false) continua funcionando via setOptions
 
 // Keepalive para manter o service worker ativo
 let keepaliveInterval = null;
