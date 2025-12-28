@@ -1,7 +1,77 @@
-// content.js - WhatsApp Group Extractor v6.0.3 (CORREÇÃO COMPLETA)
-console.log('[WA Extractor] Content script v6.0.3 carregado');
+// content.js - WhatsApp Group Extractor v7.0.0 - HEADLESS WORKER
+console.log('[WA Extractor] Content script v7.0.0 carregado (Headless Worker)');
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// ========================================
+// WHATSAPP WEB STATE DETECTION
+// ========================================
+function getWAWebState() {
+    // Detectar QR/Login
+    if (detectQrLogin()) {
+        return { state: 'LOGIN_REQUIRED', reason: 'QR_OR_LINK_DEVICE' };
+    }
+    
+    // Detectar conectando
+    if (detectConnecting()) {
+        return { state: 'CONNECTING', reason: 'NETWORK_OR_PHONE_OFFLINE' };
+    }
+    
+    // Detectar pronto
+    const domReady = detectAppReadyDom();
+    
+    if (domReady) {
+        return { state: 'READY', reason: 'DOM_AND_API_READY' };
+    }
+    
+    return { state: 'LOADING', reason: 'DOM_NOT_READY' };
+}
+
+function detectQrLogin() {
+    const loginTexts = [
+        // PT
+        'use o whatsapp no seu computador',
+        'conectar um dispositivo',
+        'escaneie o código',
+        'mantenha seu celular conectado',
+        'para usar o whatsapp no seu computador',
+        // EN
+        'use whatsapp on your computer',
+        'link a device',
+        'scan the qr code',
+        'keep your phone connected',
+        'to use whatsapp on your computer',
+        // ES
+        'usa whatsapp en tu computadora',
+        'vincular un dispositivo',
+        'escanea el código qr',
+        'mantén tu teléfono conectado'
+    ];
+    return pageHasAnyText(loginTexts);
+}
+
+function detectConnecting() {
+    const connectTexts = [
+        'conectando', 'reconectando', 'tentando reconectar',
+        'verifique sua conexão', 'telefone sem conexão',
+        'connecting', 'reconnecting', 'phone not connected',
+        'trying to reconnect', 'check your connection'
+    ];
+    return pageHasAnyText(connectTexts);
+}
+
+function detectAppReadyDom() {
+    // Check for main chat area
+    const mainPanel = document.querySelector('#main');
+    const chatList = document.querySelector('#pane-side');
+    
+    return (mainPanel || chatList) !== null;
+}
+
+function pageHasAnyText(textArray) {
+    const bodyText = document.body?.textContent?.toLowerCase() || '';
+    return textArray.some(text => bodyText.includes(text.toLowerCase()));
+}
 
 // ========================================
 // INJETA SCRIPT EXTERNO
@@ -79,6 +149,45 @@ function callPageAPI(type, data = {}) {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log('[WA Extractor] Mensagem recebida:', message);
     
+    // ========================================
+    // HEADLESS EXTRACTION HANDLERS
+    // ========================================
+    if (message.type === 'HEADLESS_PING') {
+        console.log('[WA Extractor] 🏓 PONG!');
+        sendResponse({ type: 'HEADLESS_PONG', jobId: message.jobId });
+        return true;
+    }
+    
+    if (message.type === 'HEADLESS_CHECK_STATE') {
+        console.log('[WA Extractor] 🔍 Checking state...');
+        const state = getWAWebState();
+        sendResponse({ 
+            type: 'HEADLESS_CHECK_STATE_RESULT', 
+            jobId: message.jobId, 
+            ...state 
+        });
+        return true;
+    }
+    
+    if (message.type === 'HEADLESS_EXTRACT_GROUP') {
+        console.log('[WA Extractor] 🚀 Starting headless extraction...');
+        handleHeadlessExtraction(message).then(sendResponse);
+        return true;
+    }
+    
+    if (message.type === 'HEADLESS_CANCEL') {
+        console.log('[WA Extractor] ❌ Cancelling extraction...');
+        if (typeof WhatsAppExtractor !== 'undefined') {
+            WhatsAppExtractor.stopExtraction();
+        }
+        sendResponse({ success: true });
+        return true;
+    }
+    
+    // ========================================
+    // LEGACY HANDLERS (backward compatibility)
+    // ========================================
+    
     handleMessage(message).then(sendResponse).catch(error => {
         console.error('[WA Extractor] Erro:', error);
         sendResponse({ success: false, error: error.message });
@@ -86,6 +195,101 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     
     return true;
 });
+
+// ========================================
+// HEADLESS EXTRACTION HANDLER
+// ========================================
+async function handleHeadlessExtraction(message) {
+    const { jobId, groupId, groupName, isArchived } = message;
+    
+    try {
+        console.log(`[WA Extractor] 📍 Navigating to group: ${groupName}`);
+        
+        // 1. Navegar até o grupo (reutiliza navigateToGroupWithRetry)
+        const navResult = await navigateToGroupWithRetry(groupId, groupName, isArchived);
+        
+        if (!navResult.success) {
+            return { 
+                type: 'HEADLESS_ERROR', 
+                jobId, 
+                code: 'NO_CHAT', 
+                message: navResult.error 
+            };
+        }
+        
+        console.log('[WA Extractor] ✅ Navigation successful');
+        
+        // 2. Extrair membros (reutiliza extractMembers)
+        const extractResult = await extractMembersHeadless(jobId);
+        
+        if (extractResult.success) {
+            return { 
+                type: 'HEADLESS_DONE', 
+                jobId, 
+                members: extractResult.data.members,
+                meta: {
+                    groupId,
+                    groupName,
+                    total: extractResult.data.totalMembers,
+                    isArchived
+                }
+            };
+        } else {
+            return { 
+                type: 'HEADLESS_ERROR', 
+                jobId, 
+                code: 'EXTRACTION_FAILED', 
+                message: extractResult.error 
+            };
+        }
+    } catch (error) {
+        console.error('[WA Extractor] ❌ Headless extraction error:', error);
+        return { 
+            type: 'HEADLESS_ERROR', 
+            jobId, 
+            code: 'EXTRACTION_FAILED', 
+            message: error.message 
+        };
+    }
+}
+
+// ========================================
+// HEADLESS EXTRACTION WITH PROGRESS
+// ========================================
+async function extractMembersHeadless(jobId) {
+    return new Promise((resolve, reject) => {
+        let lastReportedProgress = 30;
+        
+        if (typeof WhatsAppExtractor === 'undefined') {
+            reject(new Error('🔄 Módulo de extração não carregado.'));
+            return;
+        }
+        
+        WhatsAppExtractor.extractMembers(
+            (progress) => {
+                // Enviar progresso para background (não para UI diretamente)
+                const currentProgress = Math.max(lastReportedProgress, progress.progress || 30);
+                lastReportedProgress = currentProgress;
+                
+                chrome.runtime.sendMessage({
+                    type: 'HEADLESS_PROGRESS',
+                    jobId,
+                    percent: currentProgress,
+                    count: progress.count || 0,
+                    stage: 'SCROLL',
+                    statusText: progress.status
+                });
+            },
+            (data) => {
+                resolve({ success: true, data });
+            },
+            (error) => {
+                reject(new Error(error));
+            }
+        );
+    });
+}
+
 
 async function handleMessage(message) {
     switch (message.action) {
