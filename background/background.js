@@ -6,6 +6,7 @@ let extractionLock = false;
 let extractionLockTimeout = null;
 const LOCK_TIMEOUT_MS = 300000; // 5 minutes timeout for safety
 const SIDE_PANEL_OPEN_DELAY = 1000; // Delay before opening Side Panel after redirect
+const TAB_LOAD_TIMEOUT = 30000; // Maximum time to wait for tab to load (30 seconds)
 
 // Function to clear lock with timeout
 function setExtractionLock(value) {
@@ -105,9 +106,17 @@ chrome.action.onClicked.addListener(async (tab) => {
             // Não está no WhatsApp, abrir WhatsApp e depois o painel
             const newTab = await chrome.tabs.create({ url: 'https://web.whatsapp.com' });
             
+            // Timeout de segurança para remover listener se a aba não carregar
+            const timeoutId = setTimeout(() => {
+                chrome.tabs.onUpdated.removeListener(listener);
+                console.warn('[WA Extractor] Timeout ao aguardar carregamento da aba');
+            }, TAB_LOAD_TIMEOUT);
+            
             // Aguardar a aba carregar
-            chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
+            function listener(tabId, info) {
                 if (tabId === newTab.id && info.status === 'complete') {
+                    clearTimeout(timeoutId);
+                    
                     // Aguardar um momento antes de abrir o Side Panel para garantir estabilidade
                     setTimeout(async () => {
                         try {
@@ -123,7 +132,13 @@ chrome.action.onClicked.addListener(async (tab) => {
                             // Tentar novamente se falhar na primeira vez
                             setTimeout(async () => {
                                 try {
+                                    // Garantir que o painel está habilitado antes de tentar abrir
+                                    await chrome.sidePanel.setOptions({
+                                        tabId: newTab.id,
+                                        enabled: true
+                                    });
                                     await chrome.sidePanel.open({ tabId: newTab.id });
+                                    console.log('[WA Extractor] Side Panel aberto após retry');
                                     chrome.tabs.onUpdated.removeListener(listener);
                                 } catch (retryError) {
                                     console.error('[WA Extractor] Falha ao abrir Side Panel após retry:', retryError);
@@ -133,7 +148,9 @@ chrome.action.onClicked.addListener(async (tab) => {
                         }
                     }, SIDE_PANEL_OPEN_DELAY);
                 }
-            });
+            }
+            
+            chrome.tabs.onUpdated.addListener(listener);
         }
     } catch (error) {
         console.error('[WA Extractor] Erro:', error);
