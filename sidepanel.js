@@ -1,4 +1,4 @@
-// sidepanel.js - WhatsApp Group Extractor v6.0.4 - Side Panel Implementation
+// sidepanel.js - WhatsApp Group Extractor v6.0.6 - Side Panel Implementation
 class PopupController {
     constructor() {
         // Estado
@@ -8,6 +8,17 @@ class PopupController {
         this.extractedData = null;
         this.currentFilter = 'all';
         this.stats = { total: 0, archived: 0, active: 0 };
+
+        // Constantes de progresso
+        this.PROGRESS = {
+            STARTING: 3,        // 0-3%
+            NAVIGATING: 12,     // 3-12%
+            OPENING_INFO: 20,   // 12-20%
+            PREPARING: 30,      // 20-30%
+            EXTRACTING_MIN: 30, // 30%
+            EXTRACTING_MAX: 95, // 95%
+            FINISHING: 100      // 95-100%
+        };
 
         // Estado de extração
         this.extractionState = {
@@ -782,18 +793,18 @@ class PopupController {
             this.setLoading(this.btnExtract, true);
             
             // INÍCIO IMEDIATO - 3% (feedback visual imediato)
-            this.showStatus('🚀 Iniciando processo...', 3);
+            this.showStatus('🚀 Iniciando processo...', this.PROGRESS.STARTING);
             
             // Reset do tracker de progresso para nova extração
             if (typeof lastReportedProgress !== 'undefined') {
-                lastReportedProgress = 3;
+                lastReportedProgress = this.PROGRESS.STARTING;
             }
             
             // Atualizar estado
             this.extractionState.isRunning = true;
             this.extractionState.isPaused = false;
             this.extractionState.currentGroup = this.selectedGroup;
-            this.extractionState.progress = 3;
+            this.extractionState.progress = this.PROGRESS.STARTING;
             this.extractionState.membersCount = 0;
             
             // Notificar background que extração iniciou
@@ -869,7 +880,7 @@ class PopupController {
         const INITIAL_WAIT_MS_ARCHIVED = 2500;
         const RETRY_WAIT_MS = 1000;
         let lastError = null;
-        let currentProgress = 3; // Começa de onde parou (REGRA: NUNCA regride)
+        let currentProgress = this.PROGRESS.STARTING; // Começa de onde parou (REGRA: NUNCA regride)
         
         for (let attempt = 1; attempt <= MAX_EXTRACTION_RETRIES; attempt++) {
             try {
@@ -878,13 +889,13 @@ class PopupController {
                 // Atualizar UI com progresso que NUNCA regride
                 if (attempt > 1) {
                     // Retry avança levemente em vez de regredir (+2% por tentativa)
-                    currentProgress = Math.max(currentProgress, 8 + (attempt - 1) * 2);
+                    currentProgress = Math.max(currentProgress, this.PROGRESS.STARTING + (attempt - 1) * 2);
                     this.showStatus(`🔄 Retry automático (${attempt}/${MAX_EXTRACTION_RETRIES})...`, currentProgress);
                     await this.delay(RETRY_DELAY_MS);
                 }
                 
                 // Navegando - progride para ~12%
-                currentProgress = Math.max(currentProgress, 8 + attempt * 2);
+                currentProgress = Math.max(currentProgress, this.PROGRESS.NAVIGATING);
                 const groupStatus = this.selectedGroup.isArchived ? 'arquivado' : 'ativo';
                 this.showStatus(`🔍 Navegando até o grupo ${groupStatus}...`, currentProgress);
                 
@@ -900,7 +911,7 @@ class PopupController {
                 }
                 
                 // Abrindo info - progride para ~20%
-                currentProgress = Math.max(currentProgress, 16 + attempt * 2);
+                currentProgress = Math.max(currentProgress, this.PROGRESS.OPENING_INFO);
                 this.showStatus('📂 Abrindo informações...', currentProgress);
                 
                 // Aguardar mais tempo na primeira tentativa, com tempo extra para arquivados
@@ -910,11 +921,11 @@ class PopupController {
                 await this.delay(waitTime);
                 
                 // Aguardando modal - progride para ~30%
-                currentProgress = Math.max(currentProgress, 24 + attempt * 2);
+                currentProgress = Math.max(currentProgress, this.PROGRESS.PREPARING);
                 this.showStatus('⏳ Preparando extração...', currentProgress);
                 
                 // Extração - progride de 30% até 95% (será atualizado pelo content script)
-                currentProgress = Math.max(currentProgress, 30);
+                currentProgress = Math.max(currentProgress, this.PROGRESS.EXTRACTING_MIN);
                 this.showStatus('🔍 Extraindo membros...', currentProgress);
                 
                 // Tentar extrair
@@ -1428,7 +1439,7 @@ class PopupController {
 // ========================================
 // LISTENER PARA PROGRESSO
 // ========================================
-let lastReportedProgress = 0; // Track para garantir que nunca regride
+let lastReportedProgress = 3; // Track para garantir que nunca regride (começa em 3%)
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === 'extractionProgress') {
@@ -1468,7 +1479,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 // INICIALIZAÇÃO
 // ========================================
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('[SidePanel] 🚀 Inicializando v6.0.4 COMPLETO...');
+    console.log('[SidePanel] 🚀 Inicializando v6.0.6 COMPLETO...');
     console.log('[SidePanel] 📦 Features: Virtual Scroll + IndexedDB + Google Sheets');
+    console.log('[SidePanel] 📊 Progress: Optimized bar with 65% for extraction (30-95%)');
     window.popupController = new PopupController();
 });
