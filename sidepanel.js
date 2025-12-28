@@ -338,7 +338,10 @@ class PopupController {
         // Top panel tab navigation
         this.topPanelTabs.forEach(tab => {
             tab.addEventListener('click', () => {
-                this.switchTab(tab.dataset.tab);
+                const tabName = tab.dataset.tab;
+                if (tabName) {
+                    this.switchTab(tabName);
+                }
             });
         });
         
