@@ -823,7 +823,7 @@ class PopupController {
                 
                 // Atualizar UI com progresso dinâmico
                 if (attempt > 1) {
-                    const retryProgress = 15 + (attempt - 1) * 10; // 25%, 35%, etc.
+                    const retryProgress = 15 + (attempt - 1) * 10; // 25% for retry 2, 35% for retry 3
                     this.showStatus(`🔄 Retry automático (${attempt}/${MAX_EXTRACTION_RETRIES})...`, retryProgress);
                     await this.delay(RETRY_DELAY_MS);
                 }
@@ -844,12 +844,9 @@ class PopupController {
                 
                 this.showStatus('📂 Abrindo informações...', 30);
                 // Aguardar mais tempo na primeira tentativa, com tempo extra para arquivados
-                let waitTime;
-                if (attempt === 1) {
-                    waitTime = this.selectedGroup.isArchived ? INITIAL_WAIT_MS_ARCHIVED : INITIAL_WAIT_MS_ACTIVE;
-                } else {
-                    waitTime = RETRY_WAIT_MS;
-                }
+                const waitTime = attempt === 1 
+                    ? (this.selectedGroup.isArchived ? INITIAL_WAIT_MS_ARCHIVED : INITIAL_WAIT_MS_ACTIVE)
+                    : RETRY_WAIT_MS;
                 await this.delay(waitTime);
                 
                 this.showStatus('🔍 Iniciando extração...', 40);
