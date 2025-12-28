@@ -1,3 +1,39 @@
+# WhatsApp Group Member Extractor - Changes v6.0.9
+
+## 🐛 Bug Fix - Side Panel Não Abrindo
+
+### Problema Corrigido
+O Side Panel não estava abrindo ao clicar no ícone da extensão, nem mesmo quando o usuário estava no WhatsApp Web.
+
+### Causa Raiz
+Na versão 6.0.8, foi removida a linha crucial:
+```javascript
+chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })
+```
+
+Sem essa configuração, o Chrome não sabia que deveria abrir o Side Panel quando o usuário clicasse no ícone da extensão.
+
+### Solução Implementada
+
+#### 1. Restaurado `setPanelBehavior`
+```javascript
+// Configurar comportamento padrão do Side Panel (ESSENCIAL!)
+chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(console.error);
+```
+
+#### 2. Removido `chrome.action.onClicked`
+Como `openPanelOnActionClick: true` já abre o painel automaticamente ao clicar no ícone, o listener `onClicked` não dispara mais e foi removido. Isso simplifica o código e remove ~70 linhas de complexidade desnecessária.
+
+#### 3. Mantida Lógica de Restrição por Aba
+A lógica de `setOptions` com `enabled: true/false` por aba continua funcionando perfeitamente para restringir o painel apenas ao WhatsApp Web.
+
+### Resultado
+- ✅ Side Panel abre ao clicar no ícone quando está no WhatsApp Web
+- ✅ Side Panel permanece desabilitado em outras abas (não-WhatsApp)
+- ✅ Código mais simples e limpo (~70 linhas a menos)
+
+---
+
 # WhatsApp Group Member Extractor - Changes v6.0.8
 
 ## 🎯 Objetivo
