@@ -1,6 +1,9 @@
 // background.js - WhatsApp Group Extractor v6.0.2 - BACKGROUND PERSISTENCE
 console.log('[WA Extractor] Background script carregado v6.0.2');
 
+// Flag global de lock para prevenir race conditions
+let extractionLock = false;
+
 // Estado persistente em background
 let extractionState = {
     isRunning: false,
@@ -91,6 +94,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         extractionState.membersCount = message.count || 0;
         extractionState.status = 'running';
         
+        // Se completou (100%), liberar lock
+        if (extractionState.progress >= 100) {
+            extractionLock = false;
+            extractionState.isRunning = false;
+            extractionState.status = 'completed';
+            stopKeepalive();
+            console.log('[WA Extractor] ✅ Extração concluída, lock liberado');
+        }
+        
         // Garantir que keepalive está ativo durante extração
         if (extractionState.progress > 0 && extractionState.progress < 100) {
             startKeepalive();
@@ -132,7 +144,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
     
     if (message.action === 'startExtraction') {
+        if (extractionLock) {
+            console.log('[WA Extractor] ⚠️ Extração já em andamento, ignorando...');
+            sendResponse({ 
+                success: false, 
+                error: 'Já existe uma extração em andamento. Aguarde a conclusão.' 
+            });
+            return true;
+        }
         console.log('[WA Extractor] 🚀 Iniciando extração em background...');
+        extractionLock = true;
         extractionState.isRunning = true;
         extractionState.isPaused = false;
         extractionState.status = 'running';
@@ -143,6 +164,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     
     if (message.action === 'stopExtraction') {
         console.log('[WA Extractor] ⏹️ Parando extração...');
+        extractionLock = false;
         extractionState.isRunning = false;
         extractionState.isPaused = false;
         extractionState.status = 'idle';

@@ -179,12 +179,18 @@ async function getGroupsFromDOM(includeArchived = true) {
 
     const chatElements = chatList.querySelectorAll('[data-id]');
 
-    // Textos inválidos que indicam grupos excluídos/desativados
-    const invalidTexts = [
-        'você foi removido', 'you were removed',
-        'você saiu', 'you left',
-        'grupo excluído', 'group deleted',
-        'não é mais participante', 'no longer a participant'
+    // Lista expandida de indicadores de grupos inválidos
+    const invalidIndicators = [
+        // Português
+        'você foi removido', 'você saiu', 'grupo excluído', 
+        'não é mais participante', 'este grupo foi excluído',
+        'grupo desativado', 'você não faz mais parte',
+        'este grupo não existe mais', 'grupo foi desativado',
+        // English
+        'you were removed', 'you left', 'group deleted',
+        'no longer a participant', 'this group was deleted',
+        'group deactivated', 'you are no longer a member',
+        'this group no longer exists'
     ];
 
     for (const element of chatElements) {
@@ -199,13 +205,14 @@ async function getGroupsFromDOM(includeArchived = true) {
         if (!name || name.length < 2 || name.length > 100) continue;
         if (/^(ontem|hoje|yesterday|today|\d{1,2}:\d{2})/i.test(name)) continue;
 
-        // Verificar o texto completo do elemento para detectar grupos inválidos
+        // Verificar TANTO no elemento quanto na metadata do grupo
         const elementText = element.textContent?.toLowerCase() || '';
+        const nameToCheck = (name || '').toLowerCase();
         let isInvalidGroup = false;
         
-        for (const invalidText of invalidTexts) {
-            if (elementText.includes(invalidText.toLowerCase())) {
-                console.log(`[WA Extractor] ⚠️ Grupo filtrado (texto inválido): "${name}"`);
+        for (const indicator of invalidIndicators) {
+            if (elementText.includes(indicator) || nameToCheck.includes(indicator)) {
+                console.log(`[WA Extractor] ⚠️ Grupo filtrado: "${name}" - motivo: "${indicator}"`);
                 isInvalidGroup = true;
                 break;
             }

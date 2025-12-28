@@ -739,6 +739,12 @@ class PopupController {
             return;
         }
 
+        // Verificar se já há uma extração em andamento
+        if (this.extractionState.isRunning) {
+            this.showError('⏳ Aguarde! Já existe uma extração em andamento.');
+            return;
+        }
+
         try {
             if (this.performanceMonitor) {
                 this.performanceMonitor.mark('extraction-start');
