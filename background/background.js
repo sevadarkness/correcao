@@ -44,6 +44,29 @@ chrome.runtime.onInstalled.addListener((details) => {
     }
 });
 
+// Ao clicar no ícone da extensão, abrir Side Panel
+chrome.action.onClicked.addListener(async (tab) => {
+    console.log('[WA Extractor] Ícone clicado, abrindo Side Panel...');
+    
+    // Verificar se é WhatsApp Web
+    if (tab.url?.includes('web.whatsapp.com')) {
+        try {
+            await chrome.sidePanel.open({ tabId: tab.id });
+            console.log('[WA Extractor] ✅ Side Panel aberto');
+        } catch (error) {
+            console.error('[WA Extractor] Erro ao abrir Side Panel:', error);
+        }
+    } else {
+        // Abrir WhatsApp Web se não estiver aberto
+        chrome.tabs.create({ url: 'https://web.whatsapp.com' });
+    }
+});
+
+// Configurar Side Panel para abrir apenas no WhatsApp
+chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch((error) => {
+    console.error('[WA Extractor] Erro ao configurar Side Panel:', error);
+});
+
 // Listener para mensagens entre componentes
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log('[WA Extractor] Background recebeu mensagem:', message.type || message.action);

@@ -7,18 +7,22 @@
     "activeTab",
     "scripting",
     "storage",
-    "unlimitedStorage"
+    "unlimitedStorage",
+    "sidePanel"
   ],
   "host_permissions": [
     "https://web.whatsapp.com/*"
   ],
   "action": {
-    "default_popup": "popup.html",
+    "default_title": "Abrir WhatsApp Extractor",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
     }
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
   },
   "background": {
     "service_worker": "background/background.js"
