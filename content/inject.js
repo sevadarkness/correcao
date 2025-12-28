@@ -1,11 +1,11 @@
-// inject.js - WhatsApp Group Extractor v6.0.1 (CORREÇÃO COMPLETA PARA ARQUIVADOS)
+// inject.js - WhatsApp Group Extractor v6.0.2 (CORREÇÃO COMPLETA PARA ARQUIVADOS)
 (function() {
     if (window.__waExtractorAPI) {
         console.log('[WA API] API já inicializada');
         return;
     }
 
-    console.log('[WA API] Inicializando v6.0.1 com suporte total a arquivados...');
+    console.log('[WA API] Inicializando v6.0.2 com suporte total a arquivados...');
 
     // Helper para require seguro
     function safeRequire(moduleName) {
@@ -107,7 +107,7 @@
         },
 
         // ========================================
-        // ABRIR CHAT (CORRIGIDO v6.0.1 - DESARQUIVA SE NECESSÁRIO)
+        // ABRIR CHAT (CORRIGIDO v6.0.2 - DESARQUIVA SE NECESSÁRIO)
         // ========================================
         async openChat(groupId, isArchived = false) {
             try {
@@ -337,5 +337,5 @@
         }
     });
 
-    console.log('[WA API] ✅ API v6.0.1 pronta! (Suporte completo a arquivados)');
+    console.log('[WA API] ✅ API v6.0.2 pronta! (Suporte completo a arquivados)');
 })();

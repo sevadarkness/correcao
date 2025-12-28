@@ -1,4 +1,4 @@
-// sidepanel.js - WhatsApp Group Extractor v6.0.1 - Side Panel Implementation
+// sidepanel.js - WhatsApp Group Extractor v6.0.2 - Side Panel Implementation
 class PopupController {
     constructor() {
         // Estado
@@ -1390,7 +1390,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 // INICIALIZAÇÃO
 // ========================================
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('[SidePanel] 🚀 Inicializando v6.0.1 COMPLETO...');
+    console.log('[SidePanel] 🚀 Inicializando v6.0.2 COMPLETO...');
     console.log('[SidePanel] 📦 Features: Virtual Scroll + IndexedDB + Google Sheets');
     window.popupController = new PopupController();
 });

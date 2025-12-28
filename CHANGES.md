@@ -1,4 +1,4 @@
-# WhatsApp Group Member Extractor - Changes v6.0.1
+# WhatsApp Group Member Extractor - Changes v6.0.2
 
 ## 🚀 New Features
 
@@ -142,6 +142,6 @@ Repository: sevadarkness/correcao
 
 ---
 
-**Version**: 6.0.1
+**Version**: 6.0.2
 **Date**: December 2024
 **Status**: ✅ Ready for Testing

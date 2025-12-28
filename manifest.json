@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "WhatsApp Group Member Extractor",
-  "version": "6.0.1",
+  "version": "6.0.2",
   "description": "Extrai membros de grupos do WhatsApp com Virtual Scroll, IndexedDB e Google Sheets export",
   "permissions": [
     "activeTab",
@@ -14,7 +14,6 @@
     "https://web.whatsapp.com/*"
   ],
   "action": {
-    "default_popup": "popup.html",
     "default_title": "Abrir WhatsApp Extractor",
     "default_icon": {
       "16": "icons/icon16.png",

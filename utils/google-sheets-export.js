@@ -1,4 +1,4 @@
-// google-sheets-export.js - Exportação para Google Sheets v6.0.1
+// google-sheets-export.js - Exportação para Google Sheets v6.0.2
 
 class GoogleSheetsExporter {
     constructor() {
@@ -266,4 +266,4 @@ window.GoogleSheetsExporter = GoogleSheetsExporter;
 window.downloadAsCSV = downloadAsCSV;
 window.checkSheetsAvailability = checkSheetsAvailability;
 
-console.log('[Google Sheets] ✅ Export module v6.0.1 loaded');
+console.log('[Google Sheets] ✅ Export module v6.0.2 loaded');
