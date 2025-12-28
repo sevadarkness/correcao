@@ -1,6 +1,6 @@
-// extractor-v6-optimized.js - WhatsApp Group Extractor v6.0.6 MEGA OTIMIZADO
+// extractor-v6-optimized.js - WhatsApp Group Extractor v6.0.7 MEGA OTIMIZADO
 const WhatsAppExtractor = {
-    version: '6.0.6',
+    version: '6.0.7',
     
     state: {
         isExtracting: false,
@@ -817,7 +817,7 @@ const WhatsAppExtractor = {
             this.state.memberCache.clear();
             this.state.lastReportedProgress = 30; // Reset para nova extração (começa em 30%)
 
-            this.log('=== INICIANDO EXTRAÇÃO v6.0.6 MEGA OTIMIZADA ===');
+            this.log('=== INICIANDO EXTRAÇÃO v6.0.7 MEGA OTIMIZADA ===');
 
             this.state.groupName = this.getGroupName();
 
