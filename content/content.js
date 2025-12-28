@@ -1097,7 +1097,7 @@ async function closeGroupInfoPanel() {
     for (let i = 0; i < 3; i++) {
         document.dispatchEvent(new KeyboardEvent('keydown', {
             key: 'Escape',
-            keyCode: 27,
+            code: 'Escape',
             bubbles: true
         }));
         await sleep(200);
@@ -1122,9 +1122,6 @@ async function clearSearchField() {
     
     if (searchBox) {
         searchBox.innerHTML = '';
-        while (searchBox.firstChild) {
-            searchBox.removeChild(searchBox.firstChild);
-        }
         searchBox.blur();
         await sleep(200);
     }
