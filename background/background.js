@@ -40,6 +40,48 @@ let extractionState = {
 // Configurar Side Panel para abrir ao clicar no ícone
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(console.error);
 
+// Track side panel state
+let sidePanelOpen = false;
+
+// Listen for action icon click to toggle side panel
+chrome.action.onClicked.addListener(async (tab) => {
+    console.log('[WA Extractor] Action icon clicked');
+    // Side panel will be toggled by Chrome automatically
+    // We'll detect the change via sidepanel ready/closed messages
+});
+
+// Listen for side panel opening/closing
+chrome.runtime.onConnect.addListener((port) => {
+    if (port.name === 'sidepanel') {
+        console.log('[WA Extractor] 🔗 Side panel connected');
+        sidePanelOpen = true;
+        
+        // Send message to content script to show top panel
+        chrome.tabs.query({ active: true, currentWindow: true }).then(tabs => {
+            if (tabs[0]?.id) {
+                chrome.tabs.sendMessage(tabs[0].id, { action: 'showTopPanel' })
+                    .then(() => console.log('[WA Extractor] ✅ Show top panel message sent'))
+                    .catch(err => console.log('[WA Extractor] Top panel message failed (may not be on WhatsApp):', err.message));
+            }
+        });
+        
+        port.onDisconnect.addListener(() => {
+            console.log('[WA Extractor] 🔌 Side panel disconnected');
+            sidePanelOpen = false;
+            
+            // Send message to content script to hide top panel
+            chrome.tabs.query({ active: true, currentWindow: true }).then(tabs => {
+                if (tabs[0]?.id) {
+                    chrome.tabs.sendMessage(tabs[0].id, { action: 'hideTopPanel' })
+                        .then(() => console.log('[WA Extractor] ✅ Hide top panel message sent'))
+                        .catch(err => console.log('[WA Extractor] Top panel hide message failed:', err.message));
+                }
+            });
+        });
+    }
+});
+
+
 // Keepalive para manter o service worker ativo
 let keepaliveInterval = null;
 
