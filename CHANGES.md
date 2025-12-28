@@ -1,3 +1,73 @@
+# WhatsApp Group Member Extractor - Changes
+
+## v6.0.9 (Atual)
+
+### 🎯 Objetivo
+Corrigir e simplificar o comportamento do Side Panel para garantir abertura consistente tanto no WhatsApp quanto após redirecionamento.
+
+### 🔧 Mudanças Técnicas
+
+#### Arquivos Modificados
+
+**1. `manifest.json`**
+```diff
+- "version": "6.0.8"
++ "version": "6.0.9"
+```
+
+**2. `background/background.js`**
+
+**Simplificações:**
+- ✅ Removida lógica complexa de retry (que poderia causar problemas)
+- ✅ Simplificado listener de abertura do Side Panel após redirecionamento
+- ✅ Aumentado delay de 1000ms para 1500ms (1.5s) para maior estabilidade
+- ✅ Mantida a lógica de controle manual via `chrome.action.onClicked`
+- ✅ Mantida restrição de habilitação apenas em abas do WhatsApp
+
+**Antes (complexo com retry):**
+```javascript
+// Código com timeout, try-catch aninhado e retry logic
+setTimeout(async () => {
+    try {
+        await chrome.sidePanel.setOptions(...);
+        await chrome.sidePanel.open(...);
+        chrome.tabs.onUpdated.removeListener(listener);
+    } catch (e) {
+        // Retry logic complexo...
+    }
+}, 1000);
+```
+
+**Depois (simplificado):**
+```javascript
+// Código direto e simples
+setTimeout(async () => {
+    await chrome.sidePanel.setOptions({ tabId: newTab.id, enabled: true });
+    await chrome.sidePanel.open({ tabId: newTab.id });
+}, 1500);
+```
+
+### ✅ Comportamento Esperado
+
+| Contexto | Ação ao clicar no ícone | Status |
+|----------|------------------------|--------|
+| ✅ `web.whatsapp.com` | Side Panel ABRE | ✅ Funciona |
+| ❌ `google.com` | Redireciona → WhatsApp + Side Panel ABRE | ✅ Funciona |
+| ❌ `youtube.com` | Redireciona → WhatsApp + Side Panel ABRE | ✅ Funciona |
+| ❌ Qualquer outro site | Redireciona → WhatsApp + Side Panel ABRE | ✅ Funciona |
+
+### 📊 Estatísticas
+- **Linhas Removidas**: ~40 (retry logic)
+- **Linhas Modificadas**: ~5
+- **Complexidade**: Reduzida (código mais simples e direto)
+
+### 🔒 Nota Importante
+**NÃO usa `openPanelOnActionClick: true`** - O controle é manual via `chrome.action.onClicked` listener, permitindo o comportamento de redirecionamento inteligente.
+
+---
+
+## v6.0.8
+
 # WhatsApp Group Member Extractor - Changes v6.0.8
 
 ## 🎯 Objetivo
