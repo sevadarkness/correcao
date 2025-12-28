@@ -1,4 +1,4 @@
-// popup.js - WhatsApp Group Extractor v6.0.1 COMPLETO E CORRIGIDO
+// sidepanel.js - WhatsApp Group Extractor v6.0.1 - Side Panel Implementation
 class PopupController {
     constructor() {
         // Estado
