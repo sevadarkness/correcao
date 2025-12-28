@@ -23,8 +23,6 @@
 /* Hidden state for panel synchronization */
 .wa-extractor-top-panel.hidden {
     display: none;
-    opacity: 0;
-    visibility: hidden;
 }
 
 /* Panel Container Layout */

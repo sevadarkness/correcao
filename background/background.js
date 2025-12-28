@@ -40,14 +40,15 @@ let extractionState = {
 // Configurar Side Panel para abrir ao clicar no ícone
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(console.error);
 
-// Track side panel state
+// Track side panel state and associated tab
 let sidePanelOpen = false;
+let sidePanelTabId = null;
 
-// Listen for action icon click to toggle side panel
+// Listen for action icon click to track which tab opened side panel
 chrome.action.onClicked.addListener(async (tab) => {
-    console.log('[WA Extractor] Action icon clicked');
+    console.log('[WA Extractor] Action icon clicked on tab:', tab.id);
+    sidePanelTabId = tab.id;
     // Side panel will be toggled by Chrome automatically
-    // We'll detect the change via sidepanel ready/closed messages
 });
 
 // Listen for side panel opening/closing
@@ -56,31 +57,30 @@ chrome.runtime.onConnect.addListener((port) => {
         console.log('[WA Extractor] 🔗 Side panel connected');
         sidePanelOpen = true;
         
-        // Send message to content script to show top panel
-        chrome.tabs.query({ active: true, currentWindow: true }).then(tabs => {
-            if (tabs[0]?.id) {
-                chrome.tabs.sendMessage(tabs[0].id, { action: 'showTopPanel' })
-                    .then(() => console.log('[WA Extractor] ✅ Show top panel message sent'))
-                    .catch(err => console.log('[WA Extractor] Top panel message failed (may not be on WhatsApp):', err.message));
-            }
-        });
+        // Send message to the specific tab where side panel was opened
+        const targetTabId = sidePanelTabId;
+        if (targetTabId) {
+            chrome.tabs.sendMessage(targetTabId, { action: 'showTopPanel' })
+                .then(() => console.log('[WA Extractor] ✅ Show top panel message sent to tab', targetTabId))
+                .catch(err => console.log('[WA Extractor] Top panel message failed (may not be on WhatsApp):', err.message));
+        }
         
         port.onDisconnect.addListener(() => {
             console.log('[WA Extractor] 🔌 Side panel disconnected');
             sidePanelOpen = false;
             
-            // Send message to content script to hide top panel
-            chrome.tabs.query({ active: true, currentWindow: true }).then(tabs => {
-                if (tabs[0]?.id) {
-                    chrome.tabs.sendMessage(tabs[0].id, { action: 'hideTopPanel' })
-                        .then(() => console.log('[WA Extractor] ✅ Hide top panel message sent'))
-                        .catch(err => console.log('[WA Extractor] Top panel hide message failed:', err.message));
-                }
-            });
+            // Send message to the specific tab to hide top panel
+            if (targetTabId) {
+                chrome.tabs.sendMessage(targetTabId, { action: 'hideTopPanel' })
+                    .then(() => console.log('[WA Extractor] ✅ Hide top panel message sent to tab', targetTabId))
+                    .catch(err => console.log('[WA Extractor] Top panel hide message failed:', err.message));
+            }
+            
+            // Clear the tab reference
+            sidePanelTabId = null;
         });
     }
 });
-
 
 // Keepalive para manter o service worker ativo
 let keepaliveInterval = null;

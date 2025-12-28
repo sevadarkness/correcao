@@ -71,9 +71,10 @@ class PopupController {
             // Keep port reference to maintain connection while panel is open
             this.backgroundPort = port;
             
-            // Listen for disconnect
+            // Listen for disconnect and clean up
             port.onDisconnect.addListener(() => {
                 console.log('[SidePanel] 🔌 Disconnected from background');
+                this.backgroundPort = null;
             });
         } catch (error) {
             console.error('[SidePanel] Error connecting to background:', error);
