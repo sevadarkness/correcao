@@ -83,7 +83,7 @@
                         isDisabled: g.isReadOnly === true || g.suspended === true,
                         isReadOnly: g.isReadOnly === true,
                         isDeactivated: g.isDeactivated === true,
-                        isParticipant: g.groupMetadata?.participants?.some(p => p.isMe) !== false
+                        isParticipant: g.groupMetadata?.participants?.some(p => p.isMe) === true
                     }))
                     .filter(g => {
                         // Filter out groups where user is no longer a participant
@@ -99,7 +99,7 @@
                         }
                         
                         // Filter out groups where user is not a participant
-                        if (g.isParticipant === false) {
+                        if (g.isParticipant !== true) {
                             console.log('[WA API] 🚫 Filtering out non-participant group:', g.name);
                             return false;
                         }

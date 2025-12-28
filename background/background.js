@@ -70,8 +70,8 @@ chrome.action.onClicked.addListener(async (tab) => {
     }
 });
 
-// Configurar Side Panel para abrir apenas no WhatsApp
-chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch((error) => {
+// Configurar Side Panel behavior (não abrir automaticamente, usamos listener manual)
+chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false }).catch((error) => {
     console.error('[WA Extractor] Erro ao configurar Side Panel:', error);
 });
 

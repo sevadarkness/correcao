@@ -203,7 +203,7 @@ async function getGroupsFromDOM(includeArchived = true) {
         const name = titleSpan?.getAttribute('title') || titleSpan?.textContent || 'Grupo';
 
         if (!name || name.length < 2 || name.length > 100) continue;
-        if (/^^(ontem|hoje|yesterday|today|\d{1,2}:\d{2})/i.test(name)) continue;
+        if (/^(ontem|hoje|yesterday|today|\d{1,2}:\d{2})/i.test(name)) continue;
 
         // Check if group has invalid text indicators
         const groupText = element.textContent?.toLowerCase() || '';
