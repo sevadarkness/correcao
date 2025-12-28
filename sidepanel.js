@@ -1524,6 +1524,12 @@ class PopupController {
         
         try {
             console.log('[SidePanel] Importing CSV...');
+            
+            // Check if ContactExtractor is available
+            if (!window.ContactExtractor || typeof window.ContactExtractor.importFromCSV !== 'function') {
+                throw new Error('Contact extractor module not loaded');
+            }
+            
             const contacts = await window.ContactExtractor.importFromCSV(file);
             
             // Fill in the numbers textarea

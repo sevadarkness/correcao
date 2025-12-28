@@ -36,6 +36,15 @@ class CampaignManager {
      * Generate queue from contacts and message template
      */
     generateQueue(contacts, messageTemplate, imageData = null) {
+        // Validate inputs
+        if (!Array.isArray(contacts)) {
+            throw new Error('Contacts must be an array');
+        }
+        
+        if (!messageTemplate || typeof messageTemplate !== 'string') {
+            throw new Error('Message template must be a non-empty string');
+        }
+        
         this.queue = contacts.map((contact, index) => ({
             id: index + 1,
             phone: contact.phone,

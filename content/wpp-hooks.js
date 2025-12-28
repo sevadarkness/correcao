@@ -269,8 +269,8 @@ async function typeMessageInField(message, delay = 50) {
         
         inputField.focus();
         
-        // Clear existing content
-        inputField.innerHTML = '';
+        // Clear existing content using textContent for consistency
+        inputField.textContent = '';
         
         // Type character by character
         for (let i = 0; i < message.length; i++) {
@@ -298,12 +298,19 @@ async function typeMessageInField(message, delay = 50) {
  * Wait for WhatsApp Store to be available
  */
 function waitForWhatsAppStore() {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
+        const MAX_RETRIES = 60; // 60 seconds max
+        let retries = 0;
+        
         const checkInterval = setInterval(() => {
             if (window.Store?.Chat && window.Store?.Msg && window.Store?.Contact) {
                 clearInterval(checkInterval);
                 console.log('[WA Hooks] ✅ WhatsApp Store available');
                 resolve();
+            } else if (++retries >= MAX_RETRIES) {
+                clearInterval(checkInterval);
+                console.error('[WA Hooks] ❌ Timeout waiting for WhatsApp Store');
+                reject(new Error('Timeout waiting for WhatsApp Store'));
             }
         }, 1000);
     });

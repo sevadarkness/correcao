@@ -7,6 +7,12 @@ console.log('[Contact Extractor] 📱 Initializing...');
 // PHONE VALIDATION
 // ========================================
 
+// Constants for phone validation
+const MIN_PHONE_LENGTH = 10;
+const MAX_PHONE_LENGTH = 13;
+const MIN_INTERNATIONAL_LENGTH = 12;
+const BRAZIL_COUNTRY_CODE = '55';
+
 /**
  * Validate phone number (Brazilian standards)
  */
@@ -19,10 +25,10 @@ function validatePhone(phone) {
     // Brazilian phone: 55 (country) + 2 digits (DDD) + 8 or 9 digits (number)
     // Min: 10 digits (without country code, old format)
     // Max: 13 digits (with country code, new format)
-    if (digits.length < 10 || digits.length > 13) return false;
+    if (digits.length < MIN_PHONE_LENGTH || digits.length > MAX_PHONE_LENGTH) return false;
     
     // Check if starts with valid country code (if present)
-    if (digits.length >= 12 && !digits.startsWith('55')) {
+    if (digits.length >= MIN_INTERNATIONAL_LENGTH && !digits.startsWith(BRAZIL_COUNTRY_CODE)) {
         // If has 12+ digits, should be international format starting with country code
         return true; // Allow other country codes
     }
@@ -40,8 +46,8 @@ function formatPhone(phone) {
     let digits = phone.replace(/\D/g, '');
     
     // If doesn't have country code, add it (Brazil = 55)
-    if (digits.length === 10 || digits.length === 11) {
-        digits = '55' + digits;
+    if (digits.length === MIN_PHONE_LENGTH || digits.length === MIN_PHONE_LENGTH + 1) {
+        digits = BRAZIL_COUNTRY_CODE + digits;
     }
     
     return digits;

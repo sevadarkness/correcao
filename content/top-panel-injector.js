@@ -362,15 +362,21 @@
         const btnCopyAllContacts = panel.querySelector('#btnCopyAllContacts');
         if (btnCopyAllContacts) {
             btnCopyAllContacts.addEventListener('click', () => {
-                const normal = panel.querySelector('#normalContacts').value;
-                const archived = panel.querySelector('#archivedContacts').value;
-                const blocked = panel.querySelector('#blockedContacts').value;
+                const normalEl = panel.querySelector('#normalContacts');
+                const archivedEl = panel.querySelector('#archivedContacts');
+                const blockedEl = panel.querySelector('#blockedContacts');
+                
+                const normal = normalEl ? normalEl.value : '';
+                const archived = archivedEl ? archivedEl.value : '';
+                const blocked = blockedEl ? blockedEl.value : '';
                 
                 const all = [normal, archived, blocked].filter(s => s).join('\n');
                 
                 if (all) {
                     navigator.clipboard.writeText(all);
                     showStatus(panel, '✅ Todos os contatos copiados!', 'success');
+                } else {
+                    showStatus(panel, '⚠️ Nenhum contato para copiar', 'error');
                 }
             });
         }
