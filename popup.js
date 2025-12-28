@@ -41,6 +41,7 @@ class PopupController {
             this.initializeComponents();
             this.cacheElements();
             this.bindEventsOptimized();
+            this.setupHistoryEventDelegation(); // Configurar event delegation do histórico
             this.initStorage();
             this.checkWhatsAppTab();
         });
@@ -170,6 +171,12 @@ class PopupController {
             // Enviar comando para content script
             await this.sendMessage('pauseExtraction');
             
+            // Notificar background
+            chrome.runtime.sendMessage({
+                action: 'pauseExtraction',
+                state: this.extractionState
+            }).catch(console.error);
+            
             // Atualizar UI
             this.btnPauseExtraction?.classList.add('hidden');
             this.btnResumeExtraction?.classList.remove('hidden');
@@ -191,6 +198,12 @@ class PopupController {
             
             // Enviar comando para content script
             await this.sendMessage('resumeExtraction');
+            
+            // Notificar background
+            chrome.runtime.sendMessage({
+                action: 'resumeExtraction',
+                state: this.extractionState
+            }).catch(console.error);
             
             // Atualizar UI
             this.btnPauseExtraction?.classList.remove('hidden');
@@ -217,6 +230,11 @@ class PopupController {
             
             // Enviar comando para content script
             await this.sendMessage('stopExtraction');
+            
+            // Notificar background
+            chrome.runtime.sendMessage({
+                action: 'stopExtraction'
+            }).catch(console.error);
             
             // Ocultar controles
             this.extractionControls?.classList.add('hidden');
@@ -266,9 +284,6 @@ class PopupController {
         this.btnPauseExtraction = document.getElementById('btnPauseExtraction');
         this.btnResumeExtraction = document.getElementById('btnResumeExtraction');
         this.btnStopExtraction = document.getElementById('btnStopExtraction');
-
-        // Checkboxes
-        this.chkIncludeArchived = document.getElementById('chkIncludeArchived');
 
         // Filter tabs
         this.filterTabs = document.querySelectorAll('.filter-tab');
@@ -433,6 +448,11 @@ class PopupController {
         if (this.statusText) this.statusText.textContent = text;
         if (progress !== null && this.progressFill) {
             this.progressFill.style.width = `${progress}%`;
+            // Atualizar o texto de porcentagem
+            const progressPercent = document.getElementById('progressPercent');
+            if (progressPercent) {
+                progressPercent.textContent = `${Math.round(progress)}%`;
+            }
         }
     }
 
@@ -440,6 +460,10 @@ class PopupController {
         if (!this.statusBar) return;
         this.statusBar.classList.add('hidden');
         if (this.progressFill) this.progressFill.style.width = '0%';
+        const progressPercent = document.getElementById('progressPercent');
+        if (progressPercent) {
+            progressPercent.textContent = '0%';
+        }
     }
 
     setLoading(button, loading) {
@@ -503,7 +527,7 @@ class PopupController {
             this.setLoading(this.btnLoadGroups, true);
             this.showStatus('🔍 Carregando lista de grupos...', 20);
 
-            const includeArchived = this.chkIncludeArchived?.checked !== false;
+            const includeArchived = true; // Sempre incluir todos os grupos
             const cacheKey = `groups_${includeArchived}`;
 
             if (!forceRefresh && this.groupsCache && this.groupsCache.has(cacheKey)) {
@@ -718,6 +742,12 @@ class PopupController {
             this.extractionState.currentGroup = this.selectedGroup;
             this.extractionState.progress = 0;
             this.extractionState.membersCount = 0;
+            
+            // Notificar background que extração iniciou
+            chrome.runtime.sendMessage({
+                action: 'startExtraction',
+                state: this.extractionState
+            }).catch(console.error);
 
             const groupStatus = this.selectedGroup.isArchived ? 'arquivado' : 'ativo';
             this.showStatus(`🔍 Navegando até o grupo ${groupStatus}...`, 10);
@@ -762,6 +792,12 @@ class PopupController {
                 // Limpar estado de extração
                 this.extractionState.isRunning = false;
                 this.extractionState.isPaused = false;
+                
+                // Notificar background que extração finalizou
+                chrome.runtime.sendMessage({
+                    action: 'stopExtraction'
+                }).catch(console.error);
+                
                 await this.clearState();
 
                 this.showResults();
@@ -776,6 +812,12 @@ class PopupController {
             // Limpar estado em caso de erro
             this.extractionState.isRunning = false;
             this.extractionState.isPaused = false;
+            
+            // Notificar background
+            chrome.runtime.sendMessage({
+                action: 'stopExtraction'
+            }).catch(console.error);
+            
             await this.clearState();
         } finally {
             this.hideStatus();
@@ -877,7 +919,7 @@ class PopupController {
             const headers = ['Nome', 'Telefone', 'Admin', 'Grupo Arquivado', 'Data Extração'];
             const rows = this.extractedData.members.map(m => [
                 m.name,
-                this.cleanPhone(m.phone) || '',
+                m.phone || '', // MANTÉM o "+" no CSV
                 m.isAdmin ? 'Sim' : 'Não',
                 this.extractedData.isArchived ? 'Sim' : 'Não',
                 m.extractedAt
@@ -915,7 +957,7 @@ class PopupController {
 
         try {
             const list = this.extractedData.members
-                .map(m => `${m.name}${m.phone ? ' - ' + m.phone : ''}${m.isAdmin ? ' [Admin]' : ''}`)
+                .map(m => `${m.name}${m.phone ? ' - ' + m.phone : ''}${m.isAdmin ? ' [Admin]' : ''}`) // MANTÉM o "+"
                 .join('\n');
 
             await navigator.clipboard.writeText(list);
@@ -945,7 +987,16 @@ class PopupController {
         if (!this.extractedData) return;
 
         try {
-            await this.sheetsExporter.copyForSheetsWithFormatting(this.extractedData);
+            // Preparar dados COM cleanPhone aplicado
+            const dataForSheets = {
+                ...this.extractedData,
+                members: this.extractedData.members.map(m => ({
+                    ...m,
+                    phone: this.cleanPhone(m.phone) // Remove "+" para Google Sheets
+                }))
+            };
+            
+            await this.sheetsExporter.copyForSheetsWithFormatting(dataForSheets);
 
             if (this.btnCopySheets) {
                 const originalText = this.btnCopySheets.innerHTML;
@@ -958,7 +1009,7 @@ class PopupController {
                 }, 2000);
             }
 
-            console.log('[Popup] ✅ Dados copiados para Sheets');
+            console.log('[Popup] ✅ Dados copiados para Sheets (telefones sem "+")');
             alert('✅ Dados copiados!\n\n1. Abra o Google Sheets\n2. Cole com Ctrl+V\n3. Pronto!');
         } catch (error) {
             console.error('[Popup] Erro ao copiar para Sheets:', error);
@@ -970,7 +1021,16 @@ class PopupController {
         if (!this.extractedData) return;
 
         try {
-            await this.sheetsExporter.openInSheets(this.extractedData);
+            // Preparar dados COM cleanPhone aplicado
+            const dataForSheets = {
+                ...this.extractedData,
+                members: this.extractedData.members.map(m => ({
+                    ...m,
+                    phone: this.cleanPhone(m.phone) // Remove "+" para Google Sheets
+                }))
+            };
+            
+            await this.sheetsExporter.openInSheets(dataForSheets);
             console.log('[Popup] ✅ Google Sheets aberto');
         } catch (error) {
             console.error('[Popup] Erro ao abrir Sheets:', error);
@@ -1057,8 +1117,20 @@ class PopupController {
 
         this.historyList.innerHTML = html;
 
-        // Event delegation para os botões
-        this.historyList.addEventListener('click', (e) => {
+        // Event delegation já configurado no init (não precisa readicionar)
+    }
+
+    // Método para configurar event delegation do histórico (chamado uma vez no init)
+    setupHistoryEventDelegation() {
+        if (!this.historyList) return;
+        
+        // Remover listener antigo se existir
+        if (this.historyClickHandler) {
+            this.historyList.removeEventListener('click', this.historyClickHandler);
+        }
+        
+        // Criar e armazenar o handler
+        this.historyClickHandler = (e) => {
             const button = e.target.closest('[data-action]');
             if (!button) return;
 
@@ -1072,7 +1144,10 @@ class PopupController {
             } else if (action === 'delete') {
                 this.deleteExtraction(id);
             }
-        });
+        };
+        
+        // Adicionar o listener
+        this.historyList.addEventListener('click', this.historyClickHandler);
     }
 
     async viewExtraction(id) {
@@ -1095,7 +1170,7 @@ class PopupController {
                 const headers = ['Nome', 'Telefone', 'Admin', 'Grupo Arquivado', 'Data Extração'];
                 const rows = extraction.members.map(m => [
                     m.name,
-                    this.cleanPhone(m.phone) || '',
+                    m.phone || '', // MANTÉM o "+" no CSV do histórico
                     m.isAdmin ? 'Sim' : 'Não',
                     extraction.isArchived ? 'Sim' : 'Não',
                     m.extractedAt
@@ -1153,7 +1228,8 @@ class PopupController {
     // ========================================
     cleanPhone(phone) {
         if (!phone) return '';
-        return phone.replace(/^\+/, '').replace(/\D/g, '');
+        // Remove o "+" do início e quaisquer espaços
+        return phone.replace(/^\+/, '').trim();
     }
 
     sanitizeFilename(filename) {
@@ -1221,12 +1297,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === 'extractionProgress') {
         const statusText = document.getElementById('statusText');
         const progressFill = document.getElementById('progressFill');
+        const progressPercent = document.getElementById('progressPercent');
 
         if (statusText) {
             statusText.textContent = `${message.status} (${message.count} membros)`;
         }
         if (progressFill && message.progress) {
             progressFill.style.width = `${message.progress}%`;
+        }
+        if (progressPercent && message.progress) {
+            progressPercent.textContent = `${Math.round(message.progress)}%`;
         }
         
         // Atualizar estado de extração
