@@ -1,5 +1,5 @@
-// content.js - WhatsApp Group Extractor v6.0.3 (CORREÇÃO COMPLETA)
-console.log('[WA Extractor] Content script v6.0.3 carregado');
+// content.js - WhatsApp Group Extractor v6.0.7 (CORREÇÃO COMPLETA + CLEANUP)
+console.log('[WA Extractor] Content script v6.0.7 carregado');
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -128,6 +128,9 @@ async function handleMessage(message) {
                 return { success: true };
             }
             return { success: false, error: '🔄 Por favor, recarregue a página do WhatsApp Web e tente novamente.' };
+            
+        case 'cleanupAfterExtraction':
+            return await cleanupAfterExtraction();
             
         case 'getGroupName':
             return { 
@@ -1023,8 +1026,12 @@ async function extractMembers() {
                         console.error('[WA Extractor] Erro ao enviar progresso:', e);
                     }
                 },
-                (data) => {
+                async (data) => {
                     console.log('[WA Extractor] Extração concluída:', data);
+                    
+                    // NOVO: Cleanup após extração
+                    await cleanupAfterExtraction();
+                    
                     resolve({ success: true, data: data });
                 },
                 (error) => {
@@ -1036,5 +1043,110 @@ async function extractMembers() {
     } catch (error) {
         console.error('[WA Extractor] Erro:', error);
         return { success: false, error: error.message };
+    }
+}
+
+// ========================================
+// CLEANUP APÓS EXTRAÇÃO
+// ========================================
+async function cleanupAfterExtraction() {
+    try {
+        console.log('[WA Extractor] 🧹 Iniciando cleanup após extração...');
+        
+        // 1. Fechar painel de informações do grupo (drawer/modal)
+        await closeGroupInfoPanel();
+        
+        // 2. Limpar campo de pesquisa
+        await clearSearchField();
+        
+        // 3. Voltar para aba "Tudo"
+        await switchToAllTab();
+        
+        console.log('[WA Extractor] ✅ Cleanup concluído!');
+        return { success: true };
+    } catch (error) {
+        console.error('[WA Extractor] ⚠️ Erro no cleanup:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+async function closeGroupInfoPanel() {
+    // Fechar modal de membros (se aberto)
+    const dialogs = document.querySelectorAll('[role="dialog"]');
+    for (const dialog of dialogs) {
+        const closeBtn = dialog.querySelector('[data-icon="x"]') || 
+                        dialog.querySelector('[data-testid="x"]') ||
+                        dialog.querySelector('[aria-label*="Fechar"]') ||
+                        dialog.querySelector('[aria-label*="Close"]');
+        if (closeBtn) {
+            closeBtn.click();
+            await sleep(300);
+        }
+    }
+    
+    // Fechar drawer de informações do grupo
+    const infoDrawerCloseBtn = document.querySelector('div._aig- [data-icon="x"]') ||
+                               document.querySelector('[data-testid="contact-info-drawer"] [data-icon="x"]') ||
+                               document.querySelector('header [data-icon="x"]');
+    if (infoDrawerCloseBtn) {
+        infoDrawerCloseBtn.click();
+        await sleep(300);
+    }
+    
+    // Fallback: pressionar Escape múltiplas vezes
+    for (let i = 0; i < 3; i++) {
+        document.dispatchEvent(new KeyboardEvent('keydown', {
+            key: 'Escape',
+            code: 'Escape',
+            bubbles: true
+        }));
+        await sleep(200);
+    }
+}
+
+async function clearSearchField() {
+    // Tentar limpar via botão
+    const clearBtn = document.querySelector('[data-testid="search-clear-btn"]') ||
+                    document.querySelector('[data-icon="x-alt"]') ||
+                    document.querySelector('[aria-label*="Limpar"]') ||
+                    document.querySelector('[aria-label*="Clear"]');
+    
+    if (clearBtn) {
+        clearBtn.click();
+        await sleep(300);
+    }
+    
+    // Limpar campo de pesquisa diretamente
+    const searchBox = document.querySelector('[data-testid="chat-list-search"]') ||
+                     document.querySelector('div[contenteditable="true"][data-tab="3"]');
+    
+    if (searchBox) {
+        searchBox.innerHTML = '';
+        searchBox.blur();
+        await sleep(200);
+    }
+}
+
+async function switchToAllTab() {
+    // Encontrar e clicar na aba "Tudo" ou "All"
+    const tabs = document.querySelectorAll('button[role="tab"]');
+    
+    for (const tab of tabs) {
+        const text = tab.textContent?.trim().toLowerCase() || '';
+        const ariaLabel = tab.getAttribute('aria-label')?.toLowerCase() || '';
+        
+        if (text === 'tudo' || text === 'all' || text === 'todos' ||
+            ariaLabel.includes('tudo') || ariaLabel.includes('all')) {
+            tab.click();
+            console.log('[WA Extractor] ✅ Voltou para aba "Tudo"');
+            await sleep(300);
+            return;
+        }
+    }
+    
+    // Fallback: clicar no primeiro tab (geralmente é "Tudo")
+    if (tabs.length > 0) {
+        tabs[0].click();
+        await sleep(300);
     }
 }
