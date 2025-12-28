@@ -44,7 +44,51 @@ class PopupController {
             this.setupHistoryEventDelegation(); // Configurar event delegation do histórico
             this.initStorage();
             this.checkWhatsAppTab();
+            
+            // Adicionar listeners para detectar quando WhatsApp tab é ativada ou atualizada
+            this.setupTabListeners();
         });
+    }
+
+    // ========================================
+    // CONFIGURAR LISTENERS DE TABS
+    // ========================================
+    setupTabListeners() {
+        // Listener para quando uma tab é ativada
+        chrome.tabs.onActivated.addListener(async (activeInfo) => {
+            try {
+                const tab = await chrome.tabs.get(activeInfo.tabId);
+                // Validação mais segura da URL
+                if (tab.url && this.isWhatsAppUrl(tab.url)) {
+                    console.log('[SidePanel] Tab do WhatsApp ativada');
+                    this.checkWhatsAppTab();
+                }
+            } catch (error) {
+                // Tab pode ter sido fechada antes de obter informações
+                console.debug('[SidePanel] Erro ao obter tab:', error);
+            }
+        });
+
+        // Listener para quando uma tab é atualizada
+        chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+            if (changeInfo.status === 'complete' && tab.url && this.isWhatsAppUrl(tab.url)) {
+                console.log('[SidePanel] WhatsApp Web carregou');
+                this.checkWhatsAppTab();
+            }
+        });
+    }
+
+    // ========================================
+    // VALIDAÇÃO DE URL DO WHATSAPP
+    // ========================================
+    isWhatsAppUrl(url) {
+        try {
+            const urlObj = new URL(url);
+            return urlObj.hostname === 'web.whatsapp.com' && 
+                   (urlObj.protocol === 'https:' || urlObj.protocol === 'http:');
+        } catch (e) {
+            return false;
+        }
     }
 
     waitForDependencies() {
@@ -68,13 +112,13 @@ class PopupController {
         this.performanceMonitor = new PerformanceMonitor();
         this.storage = new ExtractionStorage();
         this.sheetsExporter = new GoogleSheetsExporter();
-        console.log('[Popup] ✅ Componentes inicializados');
+        console.log('[SidePanel] ✅ Componentes inicializados');
     }
 
     async initStorage() {
         try {
             await this.storage.init();
-            console.log('[Popup] ✅ Storage inicializado');
+            console.log('[SidePanel] ✅ Storage inicializado');
             
             const deleted = await this.storage.cleanOldExtractions(30);
             if (deleted > 0) {
@@ -404,25 +448,21 @@ class PopupController {
     // ========================================
     async checkWhatsAppTab() {
         try {
-            const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-            const tab = tabs[0];
-
-            // Validação segura de URL
-            let isWhatsAppWeb = false;
-            try {
-                const url = new URL(tab?.url || '');
-                isWhatsAppWeb = url.hostname === 'web.whatsapp.com';
-            } catch (e) {
-                // URL inválida
-                isWhatsAppWeb = false;
-            }
-
-            if (!isWhatsAppWeb) {
+            // Buscar tab do WhatsApp em qualquer janela
+            const tabs = await chrome.tabs.query({ url: '*://web.whatsapp.com/*' });
+            
+            if (tabs.length === 0) {
                 this.showError('❌ Abra o WhatsApp Web para usar esta extensão');
                 if (this.btnLoadGroups) this.btnLoadGroups.disabled = true;
+                return false;
             }
+            
+            // Habilitar botão se WhatsApp está aberto
+            if (this.btnLoadGroups) this.btnLoadGroups.disabled = false;
+            return true;
         } catch (error) {
-            console.error('[Popup] Erro ao verificar tab:', error);
+            console.error('[SidePanel] Erro ao verificar tab:', error);
+            return false;
         }
     }
 
@@ -507,8 +547,22 @@ class PopupController {
     // COMUNICAÇÃO COM CONTENT SCRIPT
     // ========================================
     async sendMessage(action, data = {}) {
-        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-        const tab = tabs[0];
+        // Side Panel precisa buscar a tab do WhatsApp de forma diferente
+        const tabs = await chrome.tabs.query({ 
+            url: '*://web.whatsapp.com/*',
+            currentWindow: true 
+        });
+        
+        // Se não encontrar na janela atual, buscar em todas
+        let tab = tabs[0];
+        if (!tab) {
+            const allTabs = await chrome.tabs.query({ url: '*://web.whatsapp.com/*' });
+            tab = allTabs[0];
+        }
+        
+        if (!tab) {
+            throw new Error('WhatsApp Web não está aberto. Abra web.whatsapp.com primeiro.');
+        }
 
         return new Promise((resolve, reject) => {
             chrome.tabs.sendMessage(
