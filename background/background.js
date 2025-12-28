@@ -59,7 +59,7 @@ chrome.runtime.onConnect.addListener((port) => {
         
         // Send message to the specific tab where side panel was opened
         const targetTabId = sidePanelTabId;
-        if (targetTabId !== null && targetTabId !== undefined) {
+        if (targetTabId != null) {
             chrome.tabs.sendMessage(targetTabId, { action: 'showTopPanel' })
                 .then(() => console.log('[WA Extractor] ✅ Show top panel message sent to tab', targetTabId))
                 .catch(err => {
@@ -81,7 +81,7 @@ chrome.runtime.onConnect.addListener((port) => {
             sidePanelOpen = false;
             
             // Send message to the specific tab to hide top panel
-            if (targetTabId !== null && targetTabId !== undefined) {
+            if (targetTabId != null) {
                 chrome.tabs.sendMessage(targetTabId, { action: 'hideTopPanel' })
                     .then(() => console.log('[WA Extractor] ✅ Hide top panel message sent to tab', targetTabId))
                     .catch(err => {

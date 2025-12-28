@@ -47,7 +47,6 @@
                     </div>
                 </div>
                 <div class="top-panel-right">
-                    <!-- Minimize button removed -->
                 </div>
             </div>
         `;
@@ -66,7 +65,7 @@
         const panel = createTopPanel();
         document.body.insertBefore(panel, document.body.firstChild);
         
-        // WhatsApp content compression is deferred until the side panel opens to maintain synchronization
+        // WhatsApp content compression occurs when top panel becomes visible to maintain synchronization with side panel
         
         // Setup event listeners
         setupEventListeners(panel);
