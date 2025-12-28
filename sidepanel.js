@@ -8,6 +8,9 @@ class PopupController {
         this.extractedData = null;
         this.currentFilter = 'all';
         this.stats = { total: 0, archived: 0, active: 0 };
+        
+        // Estado de navegação por abas
+        this.currentTab = 'extractor';
 
         // Constantes de progresso
         this.PROGRESS = {
@@ -266,6 +269,11 @@ class PopupController {
     }
 
     cacheElements() {
+        // Top panel tabs
+        this.topPanelTabs = document.querySelectorAll('.top-panel-tab');
+        this.tabExtractor = document.getElementById('tabExtractor');
+        this.tabTools = document.getElementById('tabTools');
+        
         // Steps
         this.step1 = document.getElementById('step1');
         this.step2 = document.getElementById('step2');
@@ -327,6 +335,13 @@ class PopupController {
     // BIND EVENTS
     // ========================================
     bindEventsOptimized() {
+        // Top panel tab navigation
+        this.topPanelTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                this.switchTab(tab.dataset.tab);
+            });
+        });
+        
         this.btnLoadGroups?.addEventListener('click', () => this.loadGroups());
         this.btnBack?.addEventListener('click', () => this.goToStep(1));
         this.btnExtract?.addEventListener('click', () => this.startExtraction());
@@ -411,6 +426,59 @@ class PopupController {
             e.preventDefault();
             this.searchGroups?.focus();
         }
+    }
+
+    // ========================================
+    // TAB NAVIGATION
+    // ========================================
+    /**
+     * Switch between tabs in the top panel
+     * 
+     * INTEGRATION NOTES FOR FUTURE FEATURES:
+     * - Add new tabs by:
+     *   1. Adding a button in HTML with class "top-panel-tab" and data-tab="your-tab-name"
+     *   2. Creating a tab content div with id="tabYourTabName" and class="tab-content hidden"
+     *   3. The tab switching will work automatically with existing code
+     * 
+     * - To add actions when switching to a specific tab:
+     *   Add conditions in this method to execute custom logic
+     * 
+     * - To programmatically switch tabs from other parts of the code:
+     *   Call: window.popupController.switchTab('tab-name')
+     * 
+     * @param {string} tabName - 'extractor' or 'tools' (or future tab names)
+     */
+    switchTab(tabName) {
+        if (this.currentTab === tabName) return;
+        
+        console.log(`[SidePanel] Switching to tab: ${tabName}`);
+        
+        // Update current tab state
+        this.currentTab = tabName;
+        
+        // Update tab buttons active state
+        this.topPanelTabs.forEach(tab => {
+            tab.classList.toggle('active', tab.dataset.tab === tabName);
+        });
+        
+        // Show/hide tab content with smooth transition
+        if (tabName === 'extractor') {
+            this.tabExtractor?.classList.remove('hidden');
+            this.tabTools?.classList.add('hidden');
+        } else if (tabName === 'tools') {
+            this.tabExtractor?.classList.add('hidden');
+            this.tabTools?.classList.remove('hidden');
+        }
+        
+        // INTEGRATION HOOK: Add custom logic for new tabs here
+        // Example:
+        // else if (tabName === 'new-feature') {
+        //     this.tabExtractor?.classList.add('hidden');
+        //     this.tabTools?.classList.add('hidden');
+        //     this.tabNewFeature?.classList.remove('hidden');
+        //     // Initialize new feature if needed
+        //     this.initializeNewFeature();
+        // }
     }
 
     // ========================================

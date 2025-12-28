@@ -25,6 +25,39 @@
         </header>
 
         <!-- ========================================
+             TOP PANEL - NAVIGATION TABS
+        ======================================== -->
+        <div class="top-panel">
+            <div class="top-panel-left">
+                <!-- Future: logo or navigation icons -->
+            </div>
+            <div class="top-panel-center">
+                <div class="top-panel-tabs">
+                    <button class="top-panel-tab active" data-tab="extractor">
+                        <span class="tab-icon">📥</span>
+                        <span class="tab-label">Extrator</span>
+                    </button>
+                    <button class="top-panel-tab" data-tab="tools">
+                        <span class="tab-icon">🛠️</span>
+                        <span class="tab-label">Ferramentas</span>
+                    </button>
+                </div>
+            </div>
+            <div class="top-panel-right">
+                <!-- Future: action buttons or settings -->
+            </div>
+        </div>
+
+        <!-- ========================================
+             CONTENT WRAPPER
+        ======================================== -->
+        <div class="content-wrapper">
+            <!-- ========================================
+                 TAB CONTENT: EXTRACTOR (Default Active)
+            ======================================== -->
+            <div id="tabExtractor" class="tab-content">
+
+        <!-- ========================================
              BARRA DE STATUS
         ======================================== -->
         <div id="statusBar" class="status-bar hidden">
@@ -265,6 +298,49 @@
                 ✕
             </button>
         </div>
+
+            </div>
+            <!-- End of Tab Content: Extractor -->
+
+            <!-- ========================================
+                 TAB CONTENT: FERRAMENTAS (Placeholder)
+                 
+                 INTEGRATION GUIDE:
+                 This section is prepared for future WhatsApp automation
+                 features. To integrate new functionality:
+                 
+                 1. Replace the .tools-placeholder div with your content
+                 2. Add any necessary JavaScript initialization in the
+                    switchTab() method when tabName === 'tools'
+                 3. You can add multiple sub-sections within this div
+                 4. The div will automatically show/hide when tabs are clicked
+                 5. Use the same design system variables from sidepanel.css:
+                    - Colors: var(--color-primary), var(--bg-dark), etc.
+                    - Spacing: var(--spacing-md), var(--spacing-lg), etc.
+                    - Transitions: var(--transition-normal), etc.
+            ======================================== -->
+            <div id="tabTools" class="tab-content hidden">
+                <div class="tools-placeholder">
+                    <div class="placeholder-icon">🛠️</div>
+                    <h2 class="placeholder-title">Ferramentas</h2>
+                    <p class="placeholder-text">
+                        Esta seção será integrada com funcionalidades adicionais do WhatsApp em breve.
+                    </p>
+                    <div class="placeholder-info">
+                        <p>💡 <strong>Próximas funcionalidades:</strong></p>
+                        <ul class="placeholder-list">
+                            <li>Ferramentas de automação</li>
+                            <li>Análise de mensagens</li>
+                            <li>Gerenciamento de contatos</li>
+                            <li>E muito mais...</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <!-- End of Tab Content: Tools -->
+
+        </div>
+        <!-- End of Content Wrapper -->
 
         <!-- ========================================
              FOOTER
