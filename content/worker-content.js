@@ -69,9 +69,13 @@
                 }
             }
             
-            keysToDelete.forEach(key => this.cache.delete(key));
+            for (const key of keysToDelete) {
+                this.cache.delete(key);
+            }
             
-            console.log(`[WorkerContent] Cleaned up ${keysToDelete.length} expired cache entries`);
+            if (keysToDelete.length > 0) {
+                console.log(`[WorkerContent] Cleaned up ${keysToDelete.length} expired cache entries`);
+            }
         }
         
         clear() {

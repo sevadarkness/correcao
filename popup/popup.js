@@ -24,11 +24,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 statSent.textContent = stats.sent || 0;
                 statFailed.textContent = stats.failed || 0;
                 statPending.textContent = stats.pending || 0;
-                statSuccess.textContent = stats.sent || 0; // Success = sent for now
             }
             
+            // Use proper success tracking from statistics if available
             if (result.whl_statistics) {
                 statSuccess.textContent = result.whl_statistics.totalSuccess || 0;
+            } else if (result.campaignState) {
+                // Fallback: calculate success as sent - failed
+                const stats = result.campaignState.stats || {};
+                const success = (stats.sent || 0) - (stats.failed || 0);
+                statSuccess.textContent = Math.max(0, success);
             }
         } catch (e) {
             console.error('[Popup] Error loading stats:', e);

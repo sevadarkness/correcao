@@ -18,7 +18,7 @@ class Logger {
     }
 
     _formatMessage(level, ...args) {
-        const timestamp = new Date().toISOString().substr(11, 8);
+        const timestamp = new Date().toISOString().substring(11, 19);
         const emoji = {
             debug: '🔍',
             info: 'ℹ️',
@@ -84,7 +84,7 @@ class Logger {
 
     // Set log level dynamically
     setLevel(level) {
-        if (this.levels.hasOwnProperty(level)) {
+        if (level in this.levels) {
             this.level = level;
             this.info(`Log level set to: ${level}`);
         } else {
