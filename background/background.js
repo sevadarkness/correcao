@@ -112,9 +112,13 @@ chrome.action.onClicked.addListener(async (tab) => {
                     chrome.tabs.onUpdated.removeListener(listener);
                     
                     setTimeout(async () => {
-                        await chrome.sidePanel.setOptions({ tabId: newTab.id, enabled: true });
-                        await chrome.sidePanel.open({ tabId: newTab.id });
-                        console.log('[WA Extractor] Side Panel aberto após redirecionamento');
+                        try {
+                            await chrome.sidePanel.setOptions({ tabId: newTab.id, enabled: true });
+                            await chrome.sidePanel.open({ tabId: newTab.id });
+                            console.log('[WA Extractor] Side Panel aberto após redirecionamento');
+                        } catch (error) {
+                            console.error('[WA Extractor] Erro ao abrir Side Panel após redirecionamento:', error);
+                        }
                     }, SIDE_PANEL_OPEN_DELAY);
                 }
             });
