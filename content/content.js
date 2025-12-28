@@ -1,5 +1,5 @@
-// content.js - WhatsApp Group Extractor v6.0.7 (CORREÇÃO COMPLETA + CLEANUP)
-console.log('[WA Extractor] Content script v6.0.7 carregado');
+// content.js - WhatsApp Group Extractor v6.1.0 (WhatsHybrid Lite Integration)
+console.log('[WA Extractor] Content script v6.1.0 carregado');
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -25,7 +25,28 @@ function injectPageScript() {
     });
 }
 
+// Inject WhatsApp hooks script
+function injectWppHooks() {
+    if (window.__wppHooksInjected) return Promise.resolve();
+    
+    return new Promise((resolve) => {
+        const script = document.createElement('script');
+        script.src = chrome.runtime.getURL('content/wpp-hooks.js');
+        script.onload = () => {
+            console.log('[WA Extractor] wpp-hooks.js carregado');
+            window.__wppHooksInjected = true;
+            resolve();
+        };
+        script.onerror = () => {
+            console.log('[WA Extractor] Falha ao carregar wpp-hooks.js');
+            resolve();
+        };
+        (document.head || document.documentElement).appendChild(script);
+    });
+}
+
 injectPageScript();
+injectWppHooks();
 
 // ========================================
 // DYNAMIC TIMEOUT CALCULATION
@@ -147,6 +168,37 @@ async function handleMessage(message) {
             // Hide top panel (handled by top-panel-injector.js via custom event)
             window.dispatchEvent(new CustomEvent('wa-extractor-hide-top-panel'));
             return { success: true };
+        
+        // ========================================
+        // NEW: WhatsHybrid Lite Features
+        // ========================================
+        
+        case 'extractContacts':
+            return await callPageAPI('EXTRACT_CONTACTS');
+        
+        case 'extractArchivedContacts':
+            return await callPageAPI('EXTRACT_ARCHIVED');
+        
+        case 'extractBlockedContacts':
+            return await callPageAPI('EXTRACT_BLOCKED');
+        
+        case 'getRecoveredMessages':
+            return await callPageAPI('GET_RECOVERED_MESSAGES');
+        
+        case 'clearRecoveredMessages':
+            return await callPageAPI('CLEAR_RECOVERED_MESSAGES');
+        
+        case 'sendMessage':
+            return await callPageAPI('SEND_MESSAGE_API', {
+                phone: message.phone,
+                message: message.message
+            });
+        
+        case 'typeMessage':
+            return await callPageAPI('TYPE_MESSAGE', {
+                message: message.message,
+                delay: message.delay || 50
+            });
             
         default:
             return { success: false, error: '⚠️ Operação não reconhecida. Recarregue a extensão.' };

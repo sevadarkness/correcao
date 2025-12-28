@@ -1,5 +1,5 @@
-// background.js - WhatsApp Group Extractor v6.0.7 - BACKGROUND PERSISTENCE
-console.log('[WA Extractor] Background script carregado v6.0.7');
+// background.js - WhatsApp Group Extractor v6.1.0 - BACKGROUND PERSISTENCE + CAMPAIGN
+console.log('[WA Extractor] Background script carregado v6.1.0');
 
 // Flag global de lock para prevenir race conditions
 let extractionLock = false;
@@ -34,6 +34,20 @@ let extractionState = {
     currentGroup: null,
     progress: 0,
     membersCount: 0,
+    status: 'idle' // 'idle', 'running', 'paused', 'completed', 'error'
+};
+
+// Campaign state management
+let campaignState = {
+    isRunning: false,
+    isPaused: false,
+    currentIndex: 0,
+    totalItems: 0,
+    stats: {
+        sent: 0,
+        failed: 0,
+        pending: 0
+    },
     status: 'idle' // 'idle', 'running', 'paused', 'completed', 'error'
 };
 
@@ -242,6 +256,99 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return true;
     }
     
+    // ========================================
+    // CAMPAIGN STATE MANAGEMENT
+    // ========================================
+    
+    if (message.action === 'updateCampaignState') {
+        campaignState = { ...campaignState, ...message.state };
+        console.log('[WA Extractor] Campaign state updated:', campaignState);
+        
+        // Ativar keepalive se está rodando
+        if (campaignState.isRunning) {
+            startKeepalive();
+        } else {
+            stopKeepalive();
+        }
+        
+        // Save to storage
+        chrome.storage.local.set({ campaignState }).catch(console.error);
+        
+        sendResponse({ success: true });
+        return true;
+    }
+    
+    if (message.action === 'getCampaignState') {
+        sendResponse({ success: true, state: campaignState });
+        return true;
+    }
+    
+    if (message.action === 'startCampaign') {
+        console.log('[WA Extractor] 🚀 Iniciando campanha...');
+        campaignState.isRunning = true;
+        campaignState.isPaused = false;
+        campaignState.status = 'running';
+        startKeepalive();
+        chrome.storage.local.set({ campaignState }).catch(console.error);
+        sendResponse({ success: true });
+        return true;
+    }
+    
+    if (message.action === 'stopCampaign') {
+        console.log('[WA Extractor] ⏹️ Parando campanha...');
+        campaignState.isRunning = false;
+        campaignState.isPaused = false;
+        campaignState.status = 'idle';
+        stopKeepalive();
+        chrome.storage.local.set({ campaignState }).catch(console.error);
+        sendResponse({ success: true });
+        return true;
+    }
+    
+    if (message.action === 'pauseCampaign') {
+        console.log('[WA Extractor] ⏸️ Pausando campanha...');
+        campaignState.isPaused = true;
+        campaignState.isRunning = false;
+        campaignState.status = 'paused';
+        chrome.storage.local.set({ campaignState }).catch(console.error);
+        sendResponse({ success: true });
+        return true;
+    }
+    
+    if (message.action === 'resumeCampaign') {
+        console.log('[WA Extractor] ▶️ Retomando campanha...');
+        campaignState.isPaused = false;
+        campaignState.isRunning = true;
+        campaignState.status = 'running';
+        startKeepalive();
+        chrome.storage.local.set({ campaignState }).catch(console.error);
+        sendResponse({ success: true });
+        return true;
+    }
+    
+    if (message.type === 'campaignProgress') {
+        // Atualizar estado da campanha
+        campaignState.currentIndex = message.currentIndex || 0;
+        campaignState.stats = message.stats || campaignState.stats;
+        campaignState.status = message.status || 'running';
+        
+        // Se completou, liberar keepalive
+        if (message.complete) {
+            campaignState.isRunning = false;
+            campaignState.status = 'completed';
+            stopKeepalive();
+            console.log('[WA Extractor] ✅ Campanha concluída');
+        }
+        
+        // Salvar estado
+        chrome.storage.local.set({ campaignState }).catch(console.error);
+        
+        // Broadcast para side panel se estiver aberto
+        chrome.runtime.sendMessage(message).catch(() => {
+            console.log('[WA Extractor] Side panel fechado, mensagem não enviada');
+        });
+    }
+    
     return false;
 });
 
@@ -261,14 +368,25 @@ self.addEventListener('activate', (event) => {
 });
 
 // Restaurar estado ao iniciar
-chrome.storage.local.get('backgroundExtractionState').then(result => {
+chrome.storage.local.get(['backgroundExtractionState', 'campaignState']).then(result => {
     if (result.backgroundExtractionState) {
         extractionState = result.backgroundExtractionState;
-        console.log('[WA Extractor] Estado restaurado do storage:', extractionState);
+        console.log('[WA Extractor] Estado de extração restaurado:', extractionState);
         
         // Se estava rodando, reativar keepalive
         if (extractionState.isRunning) {
             console.log('[WA Extractor] ⚠️ Extração anterior ainda em execução, reativando keepalive...');
+            startKeepalive();
+        }
+    }
+    
+    if (result.campaignState) {
+        campaignState = result.campaignState;
+        console.log('[WA Extractor] Estado de campanha restaurado:', campaignState);
+        
+        // Se estava rodando, reativar keepalive
+        if (campaignState.isRunning) {
+            console.log('[WA Extractor] ⚠️ Campanha anterior ainda em execução, reativando keepalive...');
             startKeepalive();
         }
     }
