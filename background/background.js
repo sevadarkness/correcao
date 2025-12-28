@@ -3,6 +3,29 @@ console.log('[WA Extractor] Background script carregado v6.0.3');
 
 // Flag global de lock para prevenir race conditions
 let extractionLock = false;
+let extractionLockTimeout = null;
+const LOCK_TIMEOUT_MS = 300000; // 5 minutes timeout for safety
+
+// Function to clear lock with timeout
+function setExtractionLock(value) {
+    extractionLock = value;
+    
+    // Clear existing timeout
+    if (extractionLockTimeout) {
+        clearTimeout(extractionLockTimeout);
+        extractionLockTimeout = null;
+    }
+    
+    // If setting lock to true, set a safety timeout
+    if (value === true) {
+        extractionLockTimeout = setTimeout(() => {
+            console.warn('[WA Extractor] ⚠️ Lock timeout expired, releasing lock automatically');
+            extractionLock = false;
+            extractionState.isRunning = false;
+            extractionState.status = 'error';
+        }, LOCK_TIMEOUT_MS);
+    }
+}
 
 // Estado persistente em background
 let extractionState = {
@@ -96,7 +119,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         
         // Se completou (100%), liberar lock
         if (extractionState.progress >= 100) {
-            extractionLock = false;
+            setExtractionLock(false);
             extractionState.isRunning = false;
             extractionState.status = 'completed';
             stopKeepalive();
@@ -153,7 +176,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             return true;
         }
         console.log('[WA Extractor] 🚀 Iniciando extração em background...');
-        extractionLock = true;
+        setExtractionLock(true);
         extractionState.isRunning = true;
         extractionState.isPaused = false;
         extractionState.status = 'running';
@@ -164,7 +187,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     
     if (message.action === 'stopExtraction') {
         console.log('[WA Extractor] ⏹️ Parando extração...');
-        extractionLock = false;
+        setExtractionLock(false);
         extractionState.isRunning = false;
         extractionState.isPaused = false;
         extractionState.status = 'idle';

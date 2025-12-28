@@ -53,8 +53,8 @@ function isValidMember(member) {
     // Must have either phone or name
     if (!member.phone && !member.name) return false;
     
-    // Name should not be empty or too short
-    if (member.name && member.name.trim().length < 1) return false;
+    // Name should not be empty after trim
+    if (member.name && member.name.trim().length === 0) return false;
     
     return true;
 }

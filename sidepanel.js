@@ -742,7 +742,8 @@ class PopupController {
             return;
         }
 
-        // Verificar se já há uma extração em andamento
+        // Verificar se já há uma extração em andamento (client-side check for immediate UX)
+        // Note: Background script also enforces a lock for true race condition prevention
         if (this.extractionState.isRunning) {
             this.showError('⏳ Aguarde! Já existe uma extração em andamento.');
             return;
