@@ -8,6 +8,9 @@ class PopupController {
         this.extractedData = null;
         this.currentFilter = 'all';
         this.stats = { total: 0, archived: 0, active: 0 };
+        
+        // Estado de navegação por abas
+        this.currentTab = 'extractor';
 
         // Constantes de progresso
         this.PROGRESS = {
@@ -266,6 +269,11 @@ class PopupController {
     }
 
     cacheElements() {
+        // Top panel tabs
+        this.topPanelTabs = document.querySelectorAll('.top-panel-tab');
+        this.tabExtractor = document.getElementById('tabExtractor');
+        this.tabTools = document.getElementById('tabTools');
+        
         // Steps
         this.step1 = document.getElementById('step1');
         this.step2 = document.getElementById('step2');
@@ -327,6 +335,13 @@ class PopupController {
     // BIND EVENTS
     // ========================================
     bindEventsOptimized() {
+        // Top panel tab navigation
+        this.topPanelTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                this.switchTab(tab.dataset.tab);
+            });
+        });
+        
         this.btnLoadGroups?.addEventListener('click', () => this.loadGroups());
         this.btnBack?.addEventListener('click', () => this.goToStep(1));
         this.btnExtract?.addEventListener('click', () => this.startExtraction());
@@ -410,6 +425,38 @@ class PopupController {
         if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
             e.preventDefault();
             this.searchGroups?.focus();
+        }
+    }
+
+    // ========================================
+    // TAB NAVIGATION
+    // ========================================
+    /**
+     * Switch between tabs in the top panel
+     * @param {string} tabName - 'extractor' or 'tools'
+     */
+    switchTab(tabName) {
+        if (this.currentTab === tabName) return;
+        
+        console.log(`[SidePanel] Switching to tab: ${tabName}`);
+        
+        // Update current tab state
+        this.currentTab = tabName;
+        
+        // Update tab buttons active state
+        PerformanceUtils.batchUpdate(() => {
+            this.topPanelTabs.forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.tab === tabName);
+            });
+        });
+        
+        // Show/hide tab content with smooth transition
+        if (tabName === 'extractor') {
+            this.tabExtractor?.classList.remove('hidden');
+            this.tabTools?.classList.add('hidden');
+        } else if (tabName === 'tools') {
+            this.tabExtractor?.classList.add('hidden');
+            this.tabTools?.classList.remove('hidden');
         }
     }
 
