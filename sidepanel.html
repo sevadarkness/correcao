@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WhatsApp Group Extractor v6.0.3 - Side Panel</title>
+    <title>WhatsApp Group Extractor v6.0.4 - Side Panel</title>
     <link rel="stylesheet" href="sidepanel.css">
 </head>
 <body>
@@ -17,13 +17,10 @@
                 <h1>WA Extractor</h1>
             </div>
             <div class="header-actions">
-                <span id="proModeIndicator" class="pro-mode-badge hidden" title="Extração continua em segundo plano">
-                    🧠 Pro
-                </span>
                 <button id="btnViewHistory" class="btn-icon-header" title="Ver Histórico (Ctrl+H)">
                     📜
                 </button>
-                <span class="version">v6.0.3</span>
+                <span class="version">v6.0.4</span>
             </div>
         </header>
 
@@ -54,21 +51,10 @@
              ETAPA 1: CARREGAR GRUPOS
         ======================================== -->
         <section id="step1" class="step">
-            <p class="instruction">
-                Carregue seus grupos do WhatsApp para começar:
-            </p>
-
             <button id="btnLoadGroups" class="btn btn-primary btn-large">
                 <span class="btn-icon">📂</span>
                 Carregar Grupos
             </button>
-
-            <div class="info-box">
-                <span class="info-icon">ℹ️</span>
-                <span class="info-text">
-                    Certifique-se de estar com o WhatsApp Web aberto
-                </span>
-            </div>
 
             <!-- Atalhos -->
             <div class="shortcuts-box">
@@ -78,6 +64,13 @@
                     <li><kbd>Ctrl+H</kbd> Ver histórico</li>
                     <li><kbd>Ctrl+F</kbd> Buscar grupo</li>
                 </ul>
+            </div>
+
+            <!-- Balão de dica -->
+            <div class="tip-bubble" id="tipBubble">
+                <div class="tip-content">
+                    💡 Clique em <strong>"Carregar Grupos"</strong> para começar!
+                </div>
             </div>
         </section>
 
@@ -92,15 +85,27 @@
 
             <!-- Estatísticas -->
             <div id="groupStats" class="group-stats">
-                <div class="stat-item" id="statActive">
-                    <span class="stat-icon">💬</span>
-                    <span class="stat-value">0</span>
-                    <span class="stat-label">ativos</span>
+                <div class="stat-item" id="statTotal">
+                    <span class="stat-icon">📊</span>
+                    <div class="stat-info">
+                        <span class="stat-label">Total:</span>
+                        <span class="stat-value">0</span>
+                        <span class="stat-unit">grupos</span>
+                    </div>
                 </div>
-                <div class="stat-item" id="statArchived">
+                <div class="stat-item" id="statActive">
+                    <span class="stat-icon">✅</span>
+                    <div class="stat-info">
+                        <span class="stat-label">Ativos:</span>
+                        <span class="stat-value">0</span>
+                    </div>
+                </div>
+                <div class="stat-item stat-separator" id="statArchived">
                     <span class="stat-icon">📦</span>
-                    <span class="stat-value">0</span>
-                    <span class="stat-label">arquivados</span>
+                    <div class="stat-info">
+                        <span class="stat-label">Arquivados:</span>
+                        <span class="stat-value">0</span>
+                    </div>
                 </div>
             </div>
 

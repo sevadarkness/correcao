@@ -1,4 +1,4 @@
-// sidepanel.js - WhatsApp Group Extractor v6.0.3 - Side Panel Implementation
+// sidepanel.js - WhatsApp Group Extractor v6.0.4 - Side Panel Implementation
 class PopupController {
     constructor() {
         // Estado
@@ -308,8 +308,8 @@ class PopupController {
         this.historyList = document.getElementById('historyList');
         this.historyStats = document.getElementById('historyStats');
         
-        // Pro Mode indicator
-        this.proModeIndicator = document.getElementById('proModeIndicator');
+        // Tip bubble
+        this.tipBubble = document.getElementById('tipBubble');
     }
 
     // ========================================
@@ -554,6 +554,7 @@ class PopupController {
                 this.goToStep(2);
                 this.setLoading(this.btnLoadGroups, false);
                 this.hideStatus();
+                this.hideTipBubble();
                 return;
             }
 
@@ -584,6 +585,7 @@ class PopupController {
                 this.updateStats();
                 this.setFilter('all');
                 this.goToStep(2);
+                this.hideTipBubble();
             } else {
                 throw new Error(response?.error || 'Não foi possível carregar os grupos');
             }
@@ -597,14 +599,37 @@ class PopupController {
     }
 
     // ========================================
+    // TIP BUBBLE
+    // ========================================
+    hideTipBubble() {
+        if (this.tipBubble) {
+            this.tipBubble.classList.add('hidden');
+        }
+    }
+
+    showTipBubble() {
+        if (this.tipBubble) {
+            this.tipBubble.classList.remove('hidden');
+        }
+    }
+
+    // ========================================
     // ESTATÍSTICAS
     // ========================================
     updateStats() {
+        const statTotal = document.querySelector('#statTotal .stat-value');
         const statActive = document.querySelector('#statActive .stat-value');
         const statArchived = document.querySelector('#statArchived .stat-value');
 
-        if (statActive) statActive.textContent = this.stats.active;
-        if (statArchived) statArchived.textContent = this.stats.archived;
+        if (statTotal) {
+            statTotal.textContent = this.stats.total;
+        }
+        if (statActive) {
+            statActive.textContent = this.stats.active;
+        }
+        if (statArchived) {
+            statArchived.textContent = this.stats.archived;
+        }
     }
 
     // ========================================
@@ -756,19 +781,19 @@ class PopupController {
 
             this.setLoading(this.btnExtract, true);
             
-            // INÍCIO IMEDIATO - 5% (feedback visual imediato)
-            this.showStatus('🚀 Iniciando processo...', 5);
+            // INÍCIO IMEDIATO - 3% (feedback visual imediato)
+            this.showStatus('🚀 Iniciando processo...', 3);
             
             // Reset do tracker de progresso para nova extração
             if (typeof lastReportedProgress !== 'undefined') {
-                lastReportedProgress = 5;
+                lastReportedProgress = 3;
             }
             
             // Atualizar estado
             this.extractionState.isRunning = true;
             this.extractionState.isPaused = false;
             this.extractionState.currentGroup = this.selectedGroup;
-            this.extractionState.progress = 5;
+            this.extractionState.progress = 3;
             this.extractionState.membersCount = 0;
             
             // Notificar background que extração iniciou
@@ -777,11 +802,10 @@ class PopupController {
                 state: this.extractionState
             }).catch(console.error);
             
-            // Mostrar controles de extração e Pro Mode badge
+            // Mostrar controles de extração
             this.extractionControls?.classList.remove('hidden');
             this.btnPauseExtraction?.classList.remove('hidden');
             this.btnResumeExtraction?.classList.add('hidden');
-            this.proModeIndicator?.classList.remove('hidden');
 
             await this.saveState();
 
@@ -835,7 +859,6 @@ class PopupController {
         } finally {
             this.hideStatus();
             this.extractionControls?.classList.add('hidden');
-            this.proModeIndicator?.classList.add('hidden');
         }
     }
 
@@ -846,7 +869,7 @@ class PopupController {
         const INITIAL_WAIT_MS_ARCHIVED = 2500;
         const RETRY_WAIT_MS = 1000;
         let lastError = null;
-        let currentProgress = 5; // Começa de onde parou (REGRA: NUNCA regride)
+        let currentProgress = 3; // Começa de onde parou (REGRA: NUNCA regride)
         
         for (let attempt = 1; attempt <= MAX_EXTRACTION_RETRIES; attempt++) {
             try {
@@ -855,13 +878,13 @@ class PopupController {
                 // Atualizar UI com progresso que NUNCA regride
                 if (attempt > 1) {
                     // Retry avança levemente em vez de regredir (+2% por tentativa)
-                    currentProgress = Math.max(currentProgress, 10 + (attempt - 1) * 2);
+                    currentProgress = Math.max(currentProgress, 8 + (attempt - 1) * 2);
                     this.showStatus(`🔄 Retry automático (${attempt}/${MAX_EXTRACTION_RETRIES})...`, currentProgress);
                     await this.delay(RETRY_DELAY_MS);
                 }
                 
-                // Navegando - progride para ~15%
-                currentProgress = Math.max(currentProgress, 10 + attempt * 2);
+                // Navegando - progride para ~12%
+                currentProgress = Math.max(currentProgress, 8 + attempt * 2);
                 const groupStatus = this.selectedGroup.isArchived ? 'arquivado' : 'ativo';
                 this.showStatus(`🔍 Navegando até o grupo ${groupStatus}...`, currentProgress);
                 
@@ -876,8 +899,8 @@ class PopupController {
                     throw new Error(navResult?.error || 'Falha na navegação');
                 }
                 
-                // Abrindo info - progride para ~25%
-                currentProgress = Math.max(currentProgress, 20 + attempt * 2);
+                // Abrindo info - progride para ~20%
+                currentProgress = Math.max(currentProgress, 16 + attempt * 2);
                 this.showStatus('📂 Abrindo informações...', currentProgress);
                 
                 // Aguardar mais tempo na primeira tentativa, com tempo extra para arquivados
@@ -886,12 +909,12 @@ class PopupController {
                     : RETRY_WAIT_MS;
                 await this.delay(waitTime);
                 
-                // Aguardando modal - progride para ~35%
-                currentProgress = Math.max(currentProgress, 30 + attempt * 2);
+                // Aguardando modal - progride para ~30%
+                currentProgress = Math.max(currentProgress, 24 + attempt * 2);
                 this.showStatus('⏳ Preparando extração...', currentProgress);
                 
-                // Extração - progride de 40% até 95% (será atualizado pelo content script)
-                currentProgress = Math.max(currentProgress, 40);
+                // Extração - progride de 30% até 95% (será atualizado pelo content script)
+                currentProgress = Math.max(currentProgress, 30);
                 this.showStatus('🔍 Extraindo membros...', currentProgress);
                 
                 // Tentar extrair
@@ -1391,6 +1414,9 @@ class PopupController {
             this.membersVirtualList = null;
         }
 
+        // Mostrar tip bubble novamente
+        this.showTipBubble();
+
         this.goToStep(1);
 
         if (this.performanceMonitor && this.performanceMonitor.measures.length > 0) {
@@ -1442,7 +1468,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 // INICIALIZAÇÃO
 // ========================================
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('[SidePanel] 🚀 Inicializando v6.0.2 COMPLETO...');
+    console.log('[SidePanel] 🚀 Inicializando v6.0.4 COMPLETO...');
     console.log('[SidePanel] 📦 Features: Virtual Scroll + IndexedDB + Google Sheets');
     window.popupController = new PopupController();
 });
