@@ -138,9 +138,10 @@
    to make room for the top panel
 ======================================== */
 
-/* Ensure the top panel doesn't interfere with WhatsApp's layout */
-#app {
-    /* margin-top will be set dynamically by JavaScript */
+/* When top panel is visible, compress WhatsApp content */
+body.wa-extractor-top-panel-visible #app {
+    margin-top: 64px !important;
+    height: calc(100vh - 64px) !important;
 }
 
 /* ========================================
