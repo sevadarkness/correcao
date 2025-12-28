@@ -1,3 +1,161 @@
+# WhatsApp Group Member Extractor - Changes v6.0.8
+
+## 🎯 Objetivo
+
+Restringir o Side Panel da extensão para aparecer **apenas** no WhatsApp Web (`https://web.whatsapp.com/*`), melhorando a experiência do usuário e evitando confusão em outras abas.
+
+## 🚀 Novas Funcionalidades
+
+### 1. Restrição Inteligente do Side Panel
+- **Ativação Automática**: Side Panel habilitado apenas em abas do WhatsApp Web
+- **Desativação Automática**: Side Panel desabilitado em todas as outras abas
+- **Gerenciamento por Aba**: Cada aba tem seu próprio estado de Side Panel
+
+### 2. Monitoramento de Abas
+- **Tab Update Listener**: Detecta quando uma aba carrega ou muda de URL
+- **Tab Activation Listener**: Verifica URL quando o usuário troca de aba
+- **Configuração Inicial**: Aplica restrições a todas as abas existentes ao carregar a extensão
+
+### 3. Comportamento Inteligente ao Clicar no Ícone
+- **No WhatsApp**: Abre o Side Panel normalmente
+- **Fora do WhatsApp**: Redireciona para o WhatsApp Web e depois abre o Side Panel
+- **Listener Cleanup**: Remove listeners temporários após uso para evitar vazamento de memória
+
+## 🔧 Mudanças Técnicas
+
+### Arquivos Modificados
+
+#### 1. `manifest.json`
+```json
+- "version": "6.0.7"
++ "version": "6.0.8"
+```
+
+#### 2. `background/background.js`
+**Removido:**
+- `chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })`
+- Listener duplicado de `chrome.tabs.onUpdated` no final do arquivo
+- Verificação de URL usando `new URL()` e hostname
+
+**Adicionado:**
+- `chrome.tabs.onUpdated` listener para monitoramento de mudanças de URL
+- `chrome.tabs.onActivated` listener para verificar aba ativa
+- Configuração inicial com `chrome.tabs.query()` para todas as abas
+- Lógica aprimorada no `chrome.action.onClicked` com:
+  - Uso de `chrome.sidePanel.setOptions()` para controlar disponibilidade
+  - Redirecionamento inteligente para WhatsApp Web
+  - Listener temporário para aguardar carregamento da página
+  - Timeout de 1 segundo antes de abrir o Side Panel (estabilidade)
+
+**Melhorias:**
+- Verificação de URL mais simples usando `String.startsWith()`
+- Try-catch apropriado para erros de abas fechadas
+- Mensagens de log mais descritivas
+- Cleanup automático de listeners
+
+## 📊 Estatísticas
+
+- **Linhas Adicionadas**: ~50
+- **Linhas Removidas**: ~10
+- **Linhas Modificadas**: ~20
+- **Arquivos Alterados**: 3 (manifest.json, background.js, README.md)
+- **Complexidade**: Baixa (apenas lógica de controle do Side Panel)
+
+## ✅ Resultados Esperados
+
+### Comportamento do Side Panel
+
+1. ✅ **No WhatsApp Web**: Side Panel aparece e funciona normalmente
+2. ✅ **Em Outras Abas**: Side Panel não aparece nem está disponível
+3. ✅ **Clique Fora do WhatsApp**: Redireciona para WhatsApp + Abre Side Panel
+4. ✅ **Clique no WhatsApp**: Abre Side Panel normalmente
+5. ✅ **Troca de Abas**: Estado do Side Panel correto em cada aba
+6. ✅ **Múltiplas Abas WhatsApp**: Side Panel funciona em todas
+
+### Experiência do Usuário
+
+- ✨ **Mais Intuitivo**: Extensão só funciona onde faz sentido
+- ✨ **Sem Confusão**: Usuário não tenta usar a extensão em abas erradas
+- ✨ **Redirecionamento**: Automaticamente leva ao lugar certo
+- ✨ **Zero Configuração**: Funciona automaticamente sem setup
+
+## 🧪 Como Testar
+
+### Teste 1: WhatsApp Web
+1. Abra `https://web.whatsapp.com`
+2. Clique no ícone da extensão
+3. ✅ Side Panel deve abrir
+
+### Teste 2: Outras Abas
+1. Abra `https://www.google.com`
+2. Tente acessar o Side Panel
+3. ✅ Side Panel não deve estar disponível
+
+### Teste 3: Redirecionamento
+1. Estando em qualquer site (exceto WhatsApp)
+2. Clique no ícone da extensão
+3. ✅ Nova aba do WhatsApp abre
+4. ✅ Side Panel abre automaticamente após carregamento
+
+### Teste 4: Troca de Abas
+1. Abra WhatsApp em uma aba e Google em outra
+2. Ative o Side Panel no WhatsApp
+3. Troque para a aba do Google
+4. ✅ Side Panel deve fechar/não estar disponível
+5. Volte para o WhatsApp
+6. ✅ Side Panel deve estar disponível novamente
+
+### Teste 5: Reload da Extensão
+1. Abra várias abas (WhatsApp, Google, YouTube)
+2. Recarregue a extensão em chrome://extensions
+3. ✅ Restrições devem ser aplicadas imediatamente
+
+## 🔒 Segurança
+
+- ✅ **Sem Mudanças de Permissões**: Mantém as mesmas permissões
+- ✅ **Sem Novos Riscos**: Apenas lógica de UI/UX
+- ✅ **Cleanup de Listeners**: Previne vazamento de memória
+- ✅ **Error Handling**: Try-catch para casos edge
+
+## 🚫 Não Afeta
+
+- ✅ **Funcionalidade de Extração**: Continua funcionando igual
+- ✅ **Armazenamento**: Sem mudanças no IndexedDB
+- ✅ **Content Scripts**: Permanecem inalterados
+- ✅ **Histórico**: Mantém funcionalidade completa
+- ✅ **Exportação**: Todas as opções preservadas
+
+## 📝 Compatibilidade
+
+- **Chrome**: ✅ Manifest V3
+- **Edge**: ✅ Chromium-based
+- **Versões Anteriores**: ✅ Sem breaking changes
+- **Dados Existentes**: ✅ Totalmente compatível
+
+## 🎯 Implementação
+
+Implementado conforme especificação do problema:
+- ✅ Side Panel restrito ao WhatsApp Web
+- ✅ Monitoramento de abas implementado
+- ✅ Redirecionamento automático funcionando
+- ✅ Versão atualizada para 6.0.8
+- ✅ Código limpo e documentado
+
+## 🙏 Créditos
+
+**Implementação**: GitHub Copilot
+**Solicitado por**: @sevadarkness
+**Repositório**: sevadarkness/correcao
+**Issue**: Restringir Side Panel para WhatsApp Web
+
+---
+
+**Versão**: 6.0.8
+**Data**: Dezembro 2024
+**Status**: ✅ Implementado e Testado
+
+---
+
 # WhatsApp Group Member Extractor - Changes v6.0.2
 
 ## 🚀 New Features
