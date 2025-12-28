@@ -674,24 +674,39 @@ const WhatsAppExtractor = {
             const dialogs = document.querySelectorAll('[role="dialog"]');
 
             for (const dialog of dialogs) {
-                const scrollables = dialog.querySelectorAll('div');
-
-                for (const div of scrollables) {
-                    const style = window.getComputedStyle(div);
-                    const hasScroll = style.overflowY === 'auto' || style.overflowY === 'scroll';
-
-                    if (hasScroll && div.scrollHeight > div.clientHeight + 100) {
-                        const items = div.querySelectorAll('[role="listitem"], [role="row"]');
-                        if (items.length > 0) {
-                            this.log(`✅ Container: ${items.length} itens`);
-                            return { modal: dialog, scrollContainer: div };
+                // PRIMEIRO: buscar listitems diretamente (funciona para grupos pequenos E grandes)
+                const items = dialog.querySelectorAll('[role="listitem"], [role="row"]');
+                
+                if (items.length > 0) {
+                    this.log(`✅ Modal encontrado: ${items.length} itens`);
+                    
+                    // Encontrar container scrollável que contém os itens
+                    let scrollContainer = null;
+                    
+                    const divs = dialog.querySelectorAll('div');
+                    for (const div of divs) {
+                        const style = window.getComputedStyle(div);
+                        const hasScroll = style.overflowY === 'auto' || style.overflowY === 'scroll';
+                        
+                        if (hasScroll && div.contains(items[0])) {
+                            scrollContainer = div;
+                            break;
                         }
                     }
+                    
+                    // Fallback: usar o pai dos itens se não encontrar container scrollável
+                    if (!scrollContainer) {
+                        scrollContainer = items[0].parentElement;
+                        this.log('⚠️ Usando container pai (grupo pequeno sem scroll)');
+                    }
+                    
+                    return { modal: dialog, scrollContainer };
                 }
             }
 
             return null;
         } catch (error) {
+            this.log('❌ Erro ao buscar modal:', error);
             return null;
         }
     },
