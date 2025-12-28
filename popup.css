@@ -114,6 +114,7 @@ body {
     background: rgba(255, 255, 255, 0.2);
     border-radius: 3px;
     overflow: hidden;
+    position: relative;
 }
 
 .progress-fill {
@@ -122,6 +123,18 @@ body {
     width: 0%;
     transition: width 0.3s ease;
     border-radius: 3px;
+}
+
+.progress-text {
+    position: absolute;
+    width: 100%;
+    text-align: center;
+    font-size: 10px;
+    font-weight: bold;
+    color: white;
+    text-shadow: 0 0 2px rgba(0,0,0,0.5);
+    top: -12px;
+    line-height: 1;
 }
 
 /* ========================================
@@ -680,6 +693,8 @@ body {
     margin-bottom: 12px;
     opacity: 0.95;
     flex-wrap: wrap;
+    min-height: 24px;
+    overflow: visible;
 }
 
 .members-icon {

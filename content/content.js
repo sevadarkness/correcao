@@ -695,10 +695,14 @@ async function searchAndOpenGroup(groupName) {
         searchBox.focus();
         await sleep(200);
         
-        // Limpar tudo - remover todos os filhos
+        // LIMPAR COMPLETAMENTE todos os filhos ANTES de digitar
+        console.log('[WA Extractor] Limpando campo de busca completamente...');
+        searchBox.innerHTML = ''; // Limpar completamente
+        // ou alternativa:
         while (searchBox.firstChild) {
             searchBox.removeChild(searchBox.firstChild);
         }
+        await sleep(200);
         
         // Criar estrutura Lexical correta
         const p = document.createElement('p');
