@@ -444,7 +444,7 @@ class PopupController {
      *   Add conditions in this method to execute custom logic
      * 
      * - To programmatically switch tabs from other parts of the code:
-     *   Call: popupController.switchTab('tab-name')
+     *   Call: window.popupController.switchTab('tab-name')
      * 
      * @param {string} tabName - 'extractor' or 'tools' (or future tab names)
      */
@@ -457,10 +457,8 @@ class PopupController {
         this.currentTab = tabName;
         
         // Update tab buttons active state
-        PerformanceUtils.batchUpdate(() => {
-            this.topPanelTabs.forEach(tab => {
-                tab.classList.toggle('active', tab.dataset.tab === tabName);
-            });
+        this.topPanelTabs.forEach(tab => {
+            tab.classList.toggle('active', tab.dataset.tab === tabName);
         });
         
         // Show/hide tab content with smooth transition
