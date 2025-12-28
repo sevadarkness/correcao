@@ -62,7 +62,16 @@ chrome.runtime.onConnect.addListener((port) => {
         if (targetTabId !== null && targetTabId !== undefined) {
             chrome.tabs.sendMessage(targetTabId, { action: 'showTopPanel' })
                 .then(() => console.log('[WA Extractor] ✅ Show top panel message sent to tab', targetTabId))
-                .catch(err => console.log('[WA Extractor] Top panel message failed (may not be on WhatsApp):', err.message));
+                .catch(err => {
+                    // More specific error handling
+                    if (err.message.includes('Receiving end does not exist')) {
+                        console.log('[WA Extractor] ⚠️ Tab closed or not on WhatsApp Web');
+                    } else if (err.message.includes('Cannot access')) {
+                        console.log('[WA Extractor] ⚠️ Cannot access tab (permissions or restricted page)');
+                    } else {
+                        console.log('[WA Extractor] ⚠️ Top panel message failed:', err.message);
+                    }
+                });
         } else {
             console.warn('[WA Extractor] ⚠️ No tab ID available for showing top panel');
         }
@@ -75,7 +84,16 @@ chrome.runtime.onConnect.addListener((port) => {
             if (targetTabId !== null && targetTabId !== undefined) {
                 chrome.tabs.sendMessage(targetTabId, { action: 'hideTopPanel' })
                     .then(() => console.log('[WA Extractor] ✅ Hide top panel message sent to tab', targetTabId))
-                    .catch(err => console.log('[WA Extractor] Top panel hide message failed:', err.message));
+                    .catch(err => {
+                        // More specific error handling
+                        if (err.message.includes('Receiving end does not exist')) {
+                            console.log('[WA Extractor] ⚠️ Tab closed or navigated away');
+                        } else if (err.message.includes('Cannot access')) {
+                            console.log('[WA Extractor] ⚠️ Cannot access tab (permissions or restricted page)');
+                        } else {
+                            console.log('[WA Extractor] ⚠️ Top panel hide message failed:', err.message);
+                        }
+                    });
             }
             
             // Clear the tab reference

@@ -66,13 +66,13 @@
         const panel = createTopPanel();
         document.body.insertBefore(panel, document.body.firstChild);
         
-        // DO NOT compress WhatsApp content yet - wait for side panel to open
+        // WhatsApp content compression is deferred until the side panel opens to maintain synchronization
         
         // Setup event listeners
         setupEventListeners(panel);
         
-        // Register message listener (only once)
-        registerMessageListener();
+        // Register custom event listeners for show/hide commands
+        registerEventListeners();
         
         console.log('[TopPanel] ✅ Panel injected successfully (hidden by default)');
     }
@@ -135,29 +135,19 @@
         });
     }
 
-    // Setup message listener (only once, outside of setupEventListeners to prevent duplicates)
-    let messageListenerRegistered = false;
-    
-    function registerMessageListener() {
-        if (messageListenerRegistered) {
-            console.log('[TopPanel] ⚠️ Message listener already registered, skipping');
-            return;
-        }
-        
-        // Listen for messages from background script to show/hide panel
-        chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-            if (message.action === 'showTopPanel') {
-                showTopPanel();
-                sendResponse({ success: true });
-            } else if (message.action === 'hideTopPanel') {
-                hideTopPanel();
-                sendResponse({ success: true });
-            }
-            return true; // Keep message channel open for async response
+    // Listen for custom events from content.js (which receives messages from background)
+    function registerEventListeners() {
+        window.addEventListener('wa-extractor-show-top-panel', () => {
+            console.log('[TopPanel] Received show event');
+            showTopPanel();
         });
         
-        messageListenerRegistered = true;
-        console.log('[TopPanel] ✅ Message listener registered');
+        window.addEventListener('wa-extractor-hide-top-panel', () => {
+            console.log('[TopPanel] Received hide event');
+            hideTopPanel();
+        });
+        
+        console.log('[TopPanel] ✅ Event listeners registered');
     }
 
     // Initialize
