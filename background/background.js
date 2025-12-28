@@ -57,11 +57,13 @@ chrome.runtime.onConnect.addListener((port) => {
         console.log('[WA Extractor] 🔗 Side panel connected');
         sidePanelOpen = true;
         
+        // Capture targetTabId in closure to ensure correct tab is used on disconnect
+        const capturedTabId = sidePanelTabId;
+        
         // Send message to the specific tab where side panel was opened
-        const targetTabId = sidePanelTabId;
-        if (targetTabId != null) {
-            chrome.tabs.sendMessage(targetTabId, { action: 'showTopPanel' })
-                .then(() => console.log('[WA Extractor] ✅ Show top panel message sent to tab', targetTabId))
+        if (capturedTabId != null) {
+            chrome.tabs.sendMessage(capturedTabId, { action: 'showTopPanel' })
+                .then(() => console.log('[WA Extractor] ✅ Show top panel message sent to tab', capturedTabId))
                 .catch(err => {
                     // More specific error handling
                     if (err.message.includes('Receiving end does not exist')) {
@@ -80,10 +82,10 @@ chrome.runtime.onConnect.addListener((port) => {
             console.log('[WA Extractor] 🔌 Side panel disconnected');
             sidePanelOpen = false;
             
-            // Send message to the specific tab to hide top panel
-            if (targetTabId != null) {
-                chrome.tabs.sendMessage(targetTabId, { action: 'hideTopPanel' })
-                    .then(() => console.log('[WA Extractor] ✅ Hide top panel message sent to tab', targetTabId))
+            // Use captured tab ID to ensure correct tab gets the hide message
+            if (capturedTabId != null) {
+                chrome.tabs.sendMessage(capturedTabId, { action: 'hideTopPanel' })
+                    .then(() => console.log('[WA Extractor] ✅ Hide top panel message sent to tab', capturedTabId))
                     .catch(err => {
                         // More specific error handling
                         if (err.message.includes('Receiving end does not exist')) {

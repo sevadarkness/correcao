@@ -63,6 +63,12 @@ class PopupController {
 
     // Notify background that side panel has opened
     notifyBackgroundPanelOpen() {
+        // Check if already connected to prevent duplicate connections
+        if (this.backgroundPort) {
+            console.log('[SidePanel] ⚠️ Already connected to background, skipping');
+            return;
+        }
+        
         try {
             // Establish connection to notify background of side panel state
             const port = chrome.runtime.connect({ name: 'sidepanel' });
