@@ -748,9 +748,6 @@ class PopupController {
                 action: 'startExtraction',
                 state: this.extractionState
             }).catch(console.error);
-
-            const groupStatus = this.selectedGroup.isArchived ? 'arquivado' : 'ativo';
-            this.showStatus(`🔍 Navegando até o grupo ${groupStatus}...`, 10);
             
             // Mostrar controles de extração
             this.extractionControls?.classList.remove('hidden');
@@ -759,25 +756,12 @@ class PopupController {
 
             await this.saveState();
 
-            const navResponse = await this.sendMessage('navigateToGroup', {
-                groupId: this.selectedGroup.id,
-                groupName: this.selectedGroup.name,
-                isArchived: this.selectedGroup.isArchived
-            });
+            // Chamar extractMembers com retry automático
+            const extractResult = await this.extractMembers();
 
-            if (!navResponse?.success) {
-                throw new Error(navResponse?.error || 'Não foi possível abrir o grupo');
-            }
-
-            this.showStatus('📂 Abrindo informações...', 30);
-            await this.delay(this.selectedGroup.isArchived ? 1200 : 800);
-
-            this.showStatus('🔍 Iniciando extração...', 40);
-            const extractResponse = await this.sendMessage('extractMembers');
-
-            if (extractResponse?.success && extractResponse.data) {
+            if (extractResult?.success && extractResult.data) {
                 this.extractedData = {
-                    ...extractResponse.data,
+                    ...extractResult.data,
                     groupId: this.selectedGroup.id,
                     isArchived: this.selectedGroup.isArchived
                 };
@@ -802,7 +786,7 @@ class PopupController {
 
                 this.showResults();
             } else {
-                throw new Error(extractResponse?.error || 'Erro durante a extração');
+                throw new Error(extractResult?.error || 'Erro durante a extração');
             }
         } catch (error) {
             console.error('[Popup] ❌ Erro na extração:', error);
@@ -823,6 +807,75 @@ class PopupController {
             this.hideStatus();
             this.extractionControls?.classList.add('hidden');
         }
+    }
+
+    async extractMembers() {
+        const MAX_EXTRACTION_RETRIES = 3;
+        const RETRY_DELAY_MS = 1500;
+        const INITIAL_WAIT_MS_ACTIVE = 2000;
+        const INITIAL_WAIT_MS_ARCHIVED = 2500;
+        const RETRY_WAIT_MS = 1000;
+        let lastError = null;
+        
+        for (let attempt = 1; attempt <= MAX_EXTRACTION_RETRIES; attempt++) {
+            try {
+                console.log(`[Popup] 🔄 Tentativa de extração ${attempt}/${MAX_EXTRACTION_RETRIES}`);
+                
+                // Atualizar UI com progresso dinâmico
+                if (attempt > 1) {
+                    const retryProgress = 15 + (attempt - 1) * 10; // 25% for retry 2, 35% for retry 3
+                    this.showStatus(`🔄 Retry automático (${attempt}/${MAX_EXTRACTION_RETRIES})...`, retryProgress);
+                    await this.delay(RETRY_DELAY_MS);
+                }
+                
+                const groupStatus = this.selectedGroup.isArchived ? 'arquivado' : 'ativo';
+                this.showStatus(`🔍 Navegando até o grupo ${groupStatus}...`, 10);
+                
+                // Navegar até o grupo
+                const navResult = await this.sendMessage('navigateToGroup', {
+                    groupId: this.selectedGroup.id,
+                    groupName: this.selectedGroup.name,
+                    isArchived: this.selectedGroup.isArchived
+                });
+                
+                if (!navResult || !navResult.success) {
+                    throw new Error(navResult?.error || 'Falha na navegação');
+                }
+                
+                this.showStatus('📂 Abrindo informações...', 30);
+                // Aguardar mais tempo na primeira tentativa, com tempo extra para arquivados
+                const waitTime = attempt === 1 
+                    ? (this.selectedGroup.isArchived ? INITIAL_WAIT_MS_ARCHIVED : INITIAL_WAIT_MS_ACTIVE)
+                    : RETRY_WAIT_MS;
+                await this.delay(waitTime);
+                
+                this.showStatus('🔍 Iniciando extração...', 40);
+                // Tentar extrair
+                const extractResult = await this.sendMessage('extractMembers');
+                
+                if (extractResult && extractResult.success) {
+                    console.log(`[Popup] ✅ Extração bem-sucedida na tentativa ${attempt}`);
+                    return extractResult; // Sucesso!
+                }
+                
+                // Se retornou mas sem sucesso
+                lastError = new Error(extractResult?.error || 'Extração falhou');
+                console.log(`[Popup] ⚠️ Tentativa ${attempt} falhou: ${lastError.message}`);
+                
+            } catch (error) {
+                lastError = error;
+                console.error(`[Popup] ❌ Erro na tentativa ${attempt}:`, error.message);
+            }
+            
+            // Se não é a última tentativa, continuar
+            if (attempt < MAX_EXTRACTION_RETRIES) {
+                console.log(`[Popup] 🔄 Preparando retry ${attempt + 1}...`);
+            }
+        }
+        
+        // Todas as tentativas falharam
+        console.error(`[Popup] ❌ Todas as ${MAX_EXTRACTION_RETRIES} tentativas falharam`);
+        throw lastError || new Error(`Extração falhou após ${MAX_EXTRACTION_RETRIES} tentativas`);
     }
 
     delay(ms) {
