@@ -141,7 +141,13 @@ Contribuições são bem-vindas! Por favor:
 
 ## 📝 Changelog
 
-### v6.0.8 (Atual)
+### v6.0.9 (Atual)
+- ✅ Correção do comportamento do Side Panel
+- ✅ Simplificação da lógica de abertura automática
+- ✅ Delay otimizado para 1.5s após redirecionamento
+- ✅ Remoção de retry logic complexo para maior estabilidade
+
+### v6.0.8
 - ✅ Restrição do Side Panel apenas para WhatsApp Web
 - ✅ Side Panel não aparece em outras abas
 - ✅ Redirecionamento automático ao clicar fora do WhatsApp

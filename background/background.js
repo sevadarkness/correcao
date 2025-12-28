@@ -1,11 +1,11 @@
-// background.js - WhatsApp Group Extractor v6.0.8 - BACKGROUND PERSISTENCE
-console.log('[WA Extractor] Background script carregado v6.0.8');
+// background.js - WhatsApp Group Extractor v6.0.9 - BACKGROUND PERSISTENCE
+console.log('[WA Extractor] Background script carregado v6.0.9');
 
 // Flag global de lock para prevenir race conditions
 let extractionLock = false;
 let extractionLockTimeout = null;
 const LOCK_TIMEOUT_MS = 300000; // 5 minutes timeout for safety
-const SIDE_PANEL_OPEN_DELAY = 1000; // Delay before opening Side Panel after redirect
+const SIDE_PANEL_OPEN_DELAY = 1500; // Delay before opening Side Panel after redirect (1.5s)
 const TAB_LOAD_TIMEOUT = 30000; // Maximum time to wait for tab to load (30 seconds)
 
 // Function to clear lock with timeout
@@ -106,51 +106,22 @@ chrome.action.onClicked.addListener(async (tab) => {
             // Não está no WhatsApp, abrir WhatsApp e depois o painel
             const newTab = await chrome.tabs.create({ url: 'https://web.whatsapp.com' });
             
-            // Timeout de segurança para remover listener se a aba não carregar
-            const timeoutId = setTimeout(() => {
-                chrome.tabs.onUpdated.removeListener(listener);
-                console.warn('[WA Extractor] Timeout ao aguardar carregamento da aba');
-            }, TAB_LOAD_TIMEOUT);
-            
-            // Aguardar a aba carregar
-            function listener(tabId, info) {
+            // Aguardar a aba carregar e abrir Side Panel
+            chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
                 if (tabId === newTab.id && info.status === 'complete') {
-                    clearTimeout(timeoutId);
+                    chrome.tabs.onUpdated.removeListener(listener);
                     
-                    // Aguardar um momento antes de abrir o Side Panel para garantir estabilidade
                     setTimeout(async () => {
                         try {
-                            await chrome.sidePanel.setOptions({
-                                tabId: newTab.id,
-                                enabled: true
-                            });
+                            await chrome.sidePanel.setOptions({ tabId: newTab.id, enabled: true });
                             await chrome.sidePanel.open({ tabId: newTab.id });
                             console.log('[WA Extractor] Side Panel aberto após redirecionamento');
-                            chrome.tabs.onUpdated.removeListener(listener);
-                        } catch (e) {
-                            console.log('[WA Extractor] Erro ao abrir Side Panel:', e);
-                            // Tentar novamente se falhar na primeira vez
-                            setTimeout(async () => {
-                                try {
-                                    // Garantir que o painel está habilitado antes de tentar abrir
-                                    await chrome.sidePanel.setOptions({
-                                        tabId: newTab.id,
-                                        enabled: true
-                                    });
-                                    await chrome.sidePanel.open({ tabId: newTab.id });
-                                    console.log('[WA Extractor] Side Panel aberto após retry');
-                                    chrome.tabs.onUpdated.removeListener(listener);
-                                } catch (retryError) {
-                                    console.error('[WA Extractor] Falha ao abrir Side Panel após retry:', retryError);
-                                    chrome.tabs.onUpdated.removeListener(listener);
-                                }
-                            }, SIDE_PANEL_OPEN_DELAY);
+                        } catch (error) {
+                            console.error('[WA Extractor] Erro ao abrir Side Panel após redirecionamento:', error);
                         }
                     }, SIDE_PANEL_OPEN_DELAY);
                 }
-            }
-            
-            chrome.tabs.onUpdated.addListener(listener);
+            });
         }
     } catch (error) {
         console.error('[WA Extractor] Erro:', error);
