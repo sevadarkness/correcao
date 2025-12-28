@@ -17,10 +17,13 @@
                 <h1>WA Extractor</h1>
             </div>
             <div class="header-actions">
+                <button id="btnViewCampaign" class="btn-icon-header" title="Envio em Massa">
+                    📢
+                </button>
                 <button id="btnViewHistory" class="btn-icon-header" title="Ver Histórico (Ctrl+H)">
                     📜
                 </button>
-                <span class="version">v6.0.6</span>
+                <span class="version">v6.1.0</span>
             </div>
         </header>
 
@@ -253,6 +256,192 @@
                 </button>
                 <button id="btnClearHistory" class="btn btn-danger">
                     🗑️ Limpar Tudo
+                </button>
+            </div>
+        </section>
+
+        <!-- ========================================
+             ETAPA 5: ENVIO EM MASSA
+        ======================================== -->
+        <section id="step5" class="step hidden">
+            <div class="campaign-header">
+                <h2>📢 Envio em Massa</h2>
+            </div>
+
+            <!-- Input de Números -->
+            <div class="campaign-section">
+                <label class="campaign-label">
+                    <span class="label-icon">📱</span>
+                    Números (um por linha)
+                </label>
+                <textarea 
+                    id="campaignNumbers" 
+                    class="campaign-textarea" 
+                    placeholder="5511999998888&#10;5511888887777&#10;..."
+                    rows="5"
+                ></textarea>
+                <div class="campaign-actions-row">
+                    <button id="btnImportCSV" class="btn-secondary btn-small">
+                        📂 Importar CSV
+                    </button>
+                    <input type="file" id="csvFileInput" accept=".csv" style="display: none;" />
+                </div>
+            </div>
+
+            <!-- Mensagem Template -->
+            <div class="campaign-section">
+                <label class="campaign-label">
+                    <span class="label-icon">💬</span>
+                    Mensagem
+                    <span class="label-hint">(use {{nome}}, {{first_name}}, {{phone}})</span>
+                </label>
+                <div class="message-input-wrapper">
+                    <textarea 
+                        id="campaignMessage" 
+                        class="campaign-textarea" 
+                        placeholder="Olá {{first_name}}! 👋&#10;&#10;Sua mensagem aqui..."
+                        rows="4"
+                    ></textarea>
+                    <button id="btnEmojiPicker" class="btn-emoji" title="Adicionar emoji">
+                        😊
+                    </button>
+                </div>
+            </div>
+
+            <!-- Anexar Imagem -->
+            <div class="campaign-section">
+                <label class="campaign-label">
+                    <span class="label-icon">🖼️</span>
+                    Imagem (opcional)
+                </label>
+                <div class="image-upload-area" id="imageUploadArea">
+                    <input type="file" id="imageFileInput" accept="image/*" style="display: none;" />
+                    <button id="btnAttachImage" class="btn-attach-image">
+                        <span class="btn-icon">📎</span>
+                        Anexar Imagem
+                    </button>
+                    <div id="imagePreview" class="image-preview hidden">
+                        <img id="previewImg" src="" alt="Preview" />
+                        <button id="btnRemoveImage" class="btn-remove-image" title="Remover imagem">
+                            ✕
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Preview WhatsApp -->
+            <div class="campaign-section">
+                <label class="campaign-label">
+                    <span class="label-icon">👁️</span>
+                    Preview
+                </label>
+                <div class="whatsapp-preview">
+                    <div class="whatsapp-bubble">
+                        <div id="previewText" class="bubble-text">
+                            Olá! 👋
+                            
+                            Sua mensagem aqui...
+                        </div>
+                        <div class="bubble-meta">
+                            <span class="bubble-time">12:00</span>
+                            <span class="bubble-checks">✓✓</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gerar Fila -->
+            <div class="campaign-section">
+                <button id="btnGenerateQueue" class="btn btn-primary btn-large">
+                    <span class="btn-icon">📋</span>
+                    Gerar Fila
+                </button>
+            </div>
+
+            <!-- Estatísticas -->
+            <div id="campaignStats" class="campaign-stats hidden">
+                <div class="stat-card stat-sent">
+                    <span class="stat-card-icon">✅</span>
+                    <div class="stat-card-content">
+                        <span class="stat-card-label">Enviados</span>
+                        <span class="stat-card-value" id="statSent">0</span>
+                    </div>
+                </div>
+                <div class="stat-card stat-failed">
+                    <span class="stat-card-icon">❌</span>
+                    <div class="stat-card-content">
+                        <span class="stat-card-label">Falhas</span>
+                        <span class="stat-card-value" id="statFailed">0</span>
+                    </div>
+                </div>
+                <div class="stat-card stat-pending">
+                    <span class="stat-card-icon">⏳</span>
+                    <div class="stat-card-content">
+                        <span class="stat-card-label">Pendentes</span>
+                        <span class="stat-card-value" id="statPending">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Barra de Progresso da Campanha -->
+            <div id="campaignProgress" class="campaign-progress hidden">
+                <div class="progress-bar">
+                    <div id="campaignProgressFill" class="progress-fill"></div>
+                    <span class="progress-text" id="campaignProgressText">0%</span>
+                </div>
+                <div class="progress-info">
+                    <span id="campaignProgressInfo">Preparando...</span>
+                    <span id="campaignTimeEstimate"></span>
+                </div>
+            </div>
+
+            <!-- Controles da Campanha -->
+            <div id="campaignControls" class="campaign-controls hidden">
+                <button id="btnStartCampaign" class="btn-campaign btn-campaign-start">
+                    ▶️ Iniciar Campanha
+                </button>
+                <button id="btnPauseCampaign" class="btn-campaign btn-campaign-pause hidden">
+                    ⏸️ Pausar
+                </button>
+                <button id="btnStopCampaign" class="btn-campaign btn-campaign-stop">
+                    ⏹️ Parar
+                </button>
+            </div>
+
+            <!-- Fila/Tabela -->
+            <div id="campaignQueue" class="campaign-queue hidden">
+                <div class="queue-header">
+                    <h3>Fila de Envio</h3>
+                    <div class="queue-actions">
+                        <button id="btnSkipCurrent" class="btn-queue-action" title="Pular atual">
+                            ⏭️
+                        </button>
+                        <button id="btnClearQueue" class="btn-queue-action" title="Zerar fila">
+                            🗑️
+                        </button>
+                    </div>
+                </div>
+                <div class="queue-table-wrapper">
+                    <table class="queue-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Número</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="queueTableBody">
+                            <!-- Itens serão inseridos dinamicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Ações -->
+            <div class="actions">
+                <button id="btnBackFromCampaign" class="btn btn-secondary">
+                    ← Voltar
                 </button>
             </div>
         </section>

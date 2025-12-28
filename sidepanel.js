@@ -29,6 +29,10 @@ class PopupController {
             membersCount: 0
         };
 
+        // Campaign state
+        this.campaignManager = null;
+        this.campaignImage = null;
+
         // Caches e otimizações
         this.groupsCache = null;
         this.performanceMonitor = null;
@@ -352,6 +356,39 @@ class PopupController {
         
         // Tip bubble
         this.tipBubble = document.getElementById('tipBubble');
+        
+        // Campaign elements (Step 5)
+        this.step5 = document.getElementById('step5');
+        this.btnViewCampaign = document.getElementById('btnViewCampaign');
+        this.btnBackFromCampaign = document.getElementById('btnBackFromCampaign');
+        this.campaignNumbers = document.getElementById('campaignNumbers');
+        this.campaignMessage = document.getElementById('campaignMessage');
+        this.btnImportCSV = document.getElementById('btnImportCSV');
+        this.csvFileInput = document.getElementById('csvFileInput');
+        this.btnEmojiPicker = document.getElementById('btnEmojiPicker');
+        this.btnAttachImage = document.getElementById('btnAttachImage');
+        this.imageFileInput = document.getElementById('imageFileInput');
+        this.imagePreview = document.getElementById('imagePreview');
+        this.previewImg = document.getElementById('previewImg');
+        this.btnRemoveImage = document.getElementById('btnRemoveImage');
+        this.previewText = document.getElementById('previewText');
+        this.btnGenerateQueue = document.getElementById('btnGenerateQueue');
+        this.campaignStats = document.getElementById('campaignStats');
+        this.statSent = document.getElementById('statSent');
+        this.statFailed = document.getElementById('statFailed');
+        this.statPending = document.getElementById('statPending');
+        this.campaignProgress = document.getElementById('campaignProgress');
+        this.campaignProgressFill = document.getElementById('campaignProgressFill');
+        this.campaignProgressText = document.getElementById('campaignProgressText');
+        this.campaignProgressInfo = document.getElementById('campaignProgressInfo');
+        this.campaignControls = document.getElementById('campaignControls');
+        this.btnStartCampaign = document.getElementById('btnStartCampaign');
+        this.btnPauseCampaign = document.getElementById('btnPauseCampaign');
+        this.btnStopCampaign = document.getElementById('btnStopCampaign');
+        this.campaignQueue = document.getElementById('campaignQueue');
+        this.queueTableBody = document.getElementById('queueTableBody');
+        this.btnSkipCurrent = document.getElementById('btnSkipCurrent');
+        this.btnClearQueue = document.getElementById('btnClearQueue');
     }
 
     // ========================================
@@ -401,6 +438,35 @@ class PopupController {
         document.addEventListener('keydown', (e) => {
             this.handleKeyboardShortcuts(e);
         });
+        
+        // ========================================
+        // Campaign event bindings
+        // ========================================
+        this.btnViewCampaign?.addEventListener('click', () => this.showCampaign());
+        this.btnBackFromCampaign?.addEventListener('click', () => this.goToStep(1));
+        
+        // Import CSV
+        this.btnImportCSV?.addEventListener('click', () => this.csvFileInput.click());
+        this.csvFileInput?.addEventListener('change', (e) => this.handleCSVImport(e));
+        
+        // Image attachment
+        this.btnAttachImage?.addEventListener('click', () => this.imageFileInput.click());
+        this.imageFileInput?.addEventListener('change', (e) => this.handleImageAttachment(e));
+        this.btnRemoveImage?.addEventListener('click', () => this.removeImage());
+        
+        // Message preview update
+        this.campaignMessage?.addEventListener('input', () => this.updateMessagePreview());
+        
+        // Emoji picker (simple implementation - just adds common emojis)
+        this.btnEmojiPicker?.addEventListener('click', () => this.showEmojiPicker());
+        
+        // Queue generation and controls
+        this.btnGenerateQueue?.addEventListener('click', () => this.generateCampaignQueue());
+        this.btnStartCampaign?.addEventListener('click', () => this.startCampaign());
+        this.btnPauseCampaign?.addEventListener('click', () => this.pauseCampaign());
+        this.btnStopCampaign?.addEventListener('click', () => this.stopCampaign());
+        this.btnSkipCurrent?.addEventListener('click', () => this.skipCurrentCampaignItem());
+        this.btnClearQueue?.addEventListener('click', () => this.clearCampaignQueue());
     }
 
     // ========================================
@@ -480,6 +546,7 @@ class PopupController {
             this.step2?.classList.toggle('hidden', step !== 2);
             this.step3?.classList.toggle('hidden', step !== 3);
             this.step4?.classList.toggle('hidden', step !== 4);
+            this.step5?.classList.toggle('hidden', step !== 5);
         });
 
         if (step === 1) {
@@ -1435,6 +1502,380 @@ class PopupController {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    // ========================================
+    // CAMPAIGN METHODS
+    // ========================================
+    
+    showCampaign() {
+        console.log('[SidePanel] Showing campaign section');
+        this.goToStep(5);
+        
+        // Initialize campaign manager if not exists
+        if (!this.campaignManager && typeof CampaignModule !== 'undefined') {
+            this.campaignManager = new CampaignModule.CampaignManager();
+        }
+    }
+    
+    async handleCSVImport(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        try {
+            console.log('[SidePanel] Importing CSV...');
+            const contacts = await window.ContactExtractor.importFromCSV(file);
+            
+            // Fill in the numbers textarea
+            this.campaignNumbers.value = contacts.map(c => c.phone).join('\n');
+            
+            this.showSuccess(`✅ ${contacts.length} contatos importados!`);
+        } catch (error) {
+            console.error('[SidePanel] CSV import error:', error);
+            this.showError('❌ Erro ao importar CSV: ' + error.message);
+        }
+        
+        // Reset file input
+        event.target.value = '';
+    }
+    
+    handleImageAttachment(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        if (!file.type.startsWith('image/')) {
+            this.showError('❌ Por favor, selecione uma imagem válida');
+            return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            this.campaignImage = {
+                data: e.target.result,
+                file: file
+            };
+            
+            // Show preview
+            this.previewImg.src = e.target.result;
+            this.imagePreview.classList.remove('hidden');
+            this.btnAttachImage.style.display = 'none';
+            
+            console.log('[SidePanel] Image attached');
+        };
+        
+        reader.readAsDataURL(file);
+        
+        // Reset file input
+        event.target.value = '';
+    }
+    
+    removeImage() {
+        this.campaignImage = null;
+        this.imagePreview.classList.add('hidden');
+        this.btnAttachImage.style.display = 'flex';
+        this.previewImg.src = '';
+        console.log('[SidePanel] Image removed');
+    }
+    
+    updateMessagePreview() {
+        const message = this.campaignMessage.value || 'Olá! 👋\n\nSua mensagem aqui...';
+        
+        // Replace variables with example data
+        let preview = message;
+        preview = preview.replace(/\{\{nome\}\}/gi, 'João Silva');
+        preview = preview.replace(/\{\{first_name\}\}/gi, 'João');
+        preview = preview.replace(/\{\{phone\}\}/gi, '5511999998888');
+        
+        this.previewText.textContent = preview;
+    }
+    
+    showEmojiPicker() {
+        // Simple emoji picker - adds common emojis to the cursor position
+        const emojis = ['😊', '👋', '❤️', '🎉', '✅', '🔥', '💪', '🙏', '😍', '🤝', '💯', '⭐'];
+        
+        // Create a simple selection dialog
+        const emoji = prompt('Escolha um emoji (digite o número):\n\n' + 
+            emojis.map((e, i) => `${i + 1}. ${e}`).join('\n'));
+        
+        const index = parseInt(emoji) - 1;
+        if (index >= 0 && index < emojis.length) {
+            const textarea = this.campaignMessage;
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const text = textarea.value;
+            
+            textarea.value = text.substring(0, start) + emojis[index] + text.substring(end);
+            textarea.focus();
+            textarea.selectionStart = textarea.selectionEnd = start + emojis[index].length;
+            
+            this.updateMessagePreview();
+        }
+    }
+    
+    generateCampaignQueue() {
+        try {
+            console.log('[SidePanel] Generating campaign queue...');
+            
+            // Get numbers
+            const numbersText = this.campaignNumbers.value.trim();
+            if (!numbersText) {
+                this.showError('❌ Por favor, adicione números para enviar');
+                return;
+            }
+            
+            // Get message
+            const message = this.campaignMessage.value.trim();
+            if (!message) {
+                this.showError('❌ Por favor, adicione uma mensagem');
+                return;
+            }
+            
+            // Parse numbers
+            const lines = numbersText.split('\n').filter(line => line.trim());
+            const contacts = [];
+            
+            for (const line of lines) {
+                const phone = line.trim();
+                if (window.ContactExtractor && window.ContactExtractor.validatePhone(phone)) {
+                    contacts.push({
+                        phone: window.ContactExtractor.formatPhone(phone),
+                        name: phone // Default name is the phone itself
+                    });
+                }
+            }
+            
+            if (contacts.length === 0) {
+                this.showError('❌ Nenhum número válido encontrado');
+                return;
+            }
+            
+            // Initialize campaign manager if needed
+            if (!this.campaignManager && typeof CampaignModule !== 'undefined') {
+                this.campaignManager = new CampaignModule.CampaignManager();
+            }
+            
+            if (!this.campaignManager) {
+                this.showError('❌ Erro: Módulo de campanha não carregado');
+                return;
+            }
+            
+            // Generate queue
+            this.campaignManager.generateQueue(contacts, message, this.campaignImage);
+            
+            // Show stats and controls
+            this.updateCampaignStats();
+            this.updateQueueTable();
+            this.campaignStats.classList.remove('hidden');
+            this.campaignControls.classList.remove('hidden');
+            this.campaignQueue.classList.remove('hidden');
+            
+            this.showSuccess(`✅ Fila gerada com ${contacts.length} contatos!`);
+            
+            console.log('[SidePanel] Queue generated:', contacts.length);
+        } catch (error) {
+            console.error('[SidePanel] Error generating queue:', error);
+            this.showError('❌ Erro ao gerar fila: ' + error.message);
+        }
+    }
+    
+    updateCampaignStats() {
+        if (!this.campaignManager) return;
+        
+        const stats = this.campaignManager.stats;
+        this.statSent.textContent = stats.sent;
+        this.statFailed.textContent = stats.failed;
+        this.statPending.textContent = stats.pending;
+    }
+    
+    updateQueueTable() {
+        if (!this.campaignManager) return;
+        
+        const queue = this.campaignManager.queue;
+        const tbody = this.queueTableBody;
+        
+        tbody.innerHTML = '';
+        
+        queue.forEach((item, index) => {
+            const row = document.createElement('tr');
+            
+            // Status pill class
+            let statusClass = 'status-' + item.status;
+            let statusText = item.status === 'pending' ? '⏳ Pendente' :
+                           item.status === 'sending' ? '📤 Enviando' :
+                           item.status === 'sent' ? '✅ Enviado' :
+                           '❌ Falha';
+            
+            row.innerHTML = `
+                <td>${item.id}</td>
+                <td>${item.phone}</td>
+                <td><span class="queue-status-pill ${statusClass}">${statusText}</span></td>
+                <td>
+                    <button class="btn-remove-queue-item" data-index="${index}">✕</button>
+                </td>
+            `;
+            
+            tbody.appendChild(row);
+        });
+        
+        // Add remove handlers
+        tbody.querySelectorAll('.btn-remove-queue-item').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const index = parseInt(btn.dataset.index);
+                this.removeQueueItem(index);
+            });
+        });
+    }
+    
+    removeQueueItem(index) {
+        if (!this.campaignManager) return;
+        
+        this.campaignManager.removeItem(index);
+        this.updateCampaignStats();
+        this.updateQueueTable();
+    }
+    
+    async startCampaign() {
+        if (!this.campaignManager) {
+            this.showError('❌ Por favor, gere a fila primeiro');
+            return;
+        }
+        
+        try {
+            console.log('[SidePanel] Starting campaign...');
+            
+            this.campaignManager.isRunning = true;
+            this.campaignManager.isPaused = false;
+            
+            // Update UI
+            this.btnStartCampaign.classList.add('hidden');
+            this.btnPauseCampaign.classList.remove('hidden');
+            this.campaignProgress.classList.remove('hidden');
+            
+            // Load config
+            const result = await chrome.storage.local.get('campaignConfig');
+            if (result.campaignConfig) {
+                this.campaignManager.setConfig(result.campaignConfig);
+            }
+            
+            // Start campaign
+            const sendFunction = async (item) => {
+                try {
+                    // Send via content script
+                    const response = await chrome.runtime.sendMessage({
+                        action: 'sendMessage',
+                        phone: item.phone,
+                        message: item.message
+                    });
+                    
+                    return response || { success: false, error: 'No response' };
+                } catch (error) {
+                    return { success: false, error: error.message };
+                }
+            };
+            
+            const progressCallback = (progress) => {
+                this.updateCampaignProgress(progress);
+            };
+            
+            // Use CampaignModule to start
+            if (typeof CampaignModule !== 'undefined') {
+                await CampaignModule.startCampaign(this.campaignManager, sendFunction, progressCallback);
+            }
+            
+            console.log('[SidePanel] Campaign finished');
+            this.showSuccess('✅ Campanha concluída!');
+            
+        } catch (error) {
+            console.error('[SidePanel] Campaign error:', error);
+            this.showError('❌ Erro na campanha: ' + error.message);
+        } finally {
+            this.btnPauseCampaign.classList.add('hidden');
+            this.btnStartCampaign.classList.remove('hidden');
+        }
+    }
+    
+    pauseCampaign() {
+        if (!this.campaignManager) return;
+        
+        if (this.campaignManager.isPaused) {
+            // Resume
+            if (typeof CampaignModule !== 'undefined') {
+                CampaignModule.resumeCampaign(this.campaignManager);
+            }
+            this.btnPauseCampaign.textContent = '⏸️ Pausar';
+            console.log('[SidePanel] Campaign resumed');
+        } else {
+            // Pause
+            if (typeof CampaignModule !== 'undefined') {
+                CampaignModule.pauseCampaign(this.campaignManager);
+            }
+            this.btnPauseCampaign.textContent = '▶️ Continuar';
+            console.log('[SidePanel] Campaign paused');
+        }
+    }
+    
+    stopCampaign() {
+        if (!this.campaignManager) return;
+        
+        if (confirm('Tem certeza que deseja parar a campanha?')) {
+            if (typeof CampaignModule !== 'undefined') {
+                CampaignModule.stopCampaign(this.campaignManager);
+            }
+            
+            this.btnPauseCampaign.classList.add('hidden');
+            this.btnStartCampaign.classList.remove('hidden');
+            
+            console.log('[SidePanel] Campaign stopped');
+            this.showSuccess('⏹️ Campanha parada');
+        }
+    }
+    
+    skipCurrentCampaignItem() {
+        if (!this.campaignManager) return;
+        
+        this.campaignManager.skipCurrent();
+        this.updateCampaignStats();
+        this.updateQueueTable();
+        
+        console.log('[SidePanel] Current item skipped');
+    }
+    
+    clearCampaignQueue() {
+        if (!this.campaignManager) return;
+        
+        if (confirm('Tem certeza que deseja limpar toda a fila?')) {
+            this.campaignManager.clearQueue();
+            this.updateCampaignStats();
+            this.updateQueueTable();
+            this.campaignStats.classList.add('hidden');
+            this.campaignControls.classList.add('hidden');
+            this.campaignQueue.classList.add('hidden');
+            this.campaignProgress.classList.add('hidden');
+            
+            console.log('[SidePanel] Queue cleared');
+            this.showSuccess('🗑️ Fila limpa');
+        }
+    }
+    
+    updateCampaignProgress(progress) {
+        if (!progress) return;
+        
+        // Update progress bar
+        const percent = progress.progress || 0;
+        this.campaignProgressFill.style.width = `${percent}%`;
+        this.campaignProgressText.textContent = `${percent}%`;
+        
+        // Update info
+        const current = progress.current;
+        if (current) {
+            this.campaignProgressInfo.textContent = `Enviando para ${current.phone}...`;
+        } else if (progress.complete) {
+            this.campaignProgressInfo.textContent = 'Campanha concluída!';
+        }
+        
+        // Update stats
+        this.updateCampaignStats();
+        this.updateQueueTable();
     }
 
     // ========================================
