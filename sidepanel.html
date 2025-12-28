@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WhatsApp Group Extractor v6.0.4 - Side Panel</title>
+    <title>WhatsApp Group Extractor v6.0.5 - Side Panel</title>
     <link rel="stylesheet" href="sidepanel.css">
 </head>
 <body>
@@ -20,7 +20,7 @@
                 <button id="btnViewHistory" class="btn-icon-header" title="Ver Histórico (Ctrl+H)">
                     📜
                 </button>
-                <span class="version">v6.0.4</span>
+                <span class="version">v6.0.5</span>
             </div>
         </header>
 
@@ -51,6 +51,13 @@
              ETAPA 1: CARREGAR GRUPOS
         ======================================== -->
         <section id="step1" class="step">
+            <!-- Balão de dica -->
+            <div class="tip-bubble" id="tipBubble">
+                <div class="tip-content">
+                    💡 Clique em <strong>"Carregar Grupos"</strong> para começar!
+                </div>
+            </div>
+
             <button id="btnLoadGroups" class="btn btn-primary btn-large">
                 <span class="btn-icon">📂</span>
                 Carregar Grupos
@@ -64,13 +71,6 @@
                     <li><kbd>Ctrl+H</kbd> Ver histórico</li>
                     <li><kbd>Ctrl+F</kbd> Buscar grupo</li>
                 </ul>
-            </div>
-
-            <!-- Balão de dica -->
-            <div class="tip-bubble" id="tipBubble">
-                <div class="tip-content">
-                    💡 Clique em <strong>"Carregar Grupos"</strong> para começar!
-                </div>
             </div>
         </section>
 
@@ -93,6 +93,10 @@
                         <span class="stat-unit">grupos</span>
                     </div>
                 </div>
+                
+                <!-- SEPARADOR 1 - Entre Total e Ativos -->
+                <div class="stats-separator"></div>
+                
                 <div class="stat-item" id="statActive">
                     <span class="stat-icon">✅</span>
                     <div class="stat-info">
@@ -100,7 +104,11 @@
                         <span class="stat-value">0</span>
                     </div>
                 </div>
-                <div class="stat-item stat-separator" id="statArchived">
+                
+                <!-- SEPARADOR 2 - Entre Ativos e Arquivados -->
+                <div class="stats-separator"></div>
+                
+                <div class="stat-item" id="statArchived">
                     <span class="stat-icon">📦</span>
                     <div class="stat-info">
                         <span class="stat-label">Arquivados:</span>
