@@ -12,7 +12,9 @@ const WhatsAppExtractor = {
         modalInfo: null,
         memberCache: new Set(),
         observer: null,
-        lastScrollPosition: 0
+        lastScrollPosition: 0,
+        estimatedMembers: 100, // Estimativa de membros para cálculo de progresso
+        lastReportedProgress: 40 // Track para garantir que progresso nunca regride
     },
 
     // ========================================
@@ -369,10 +371,12 @@ const WhatsAppExtractor = {
 
         this.state.members.clear();
         this.state.memberCache.clear();
+        this.state.lastReportedProgress = 40; // Inicia em 40%
         this.initCaches();
 
         this.log('========================================');
         this.log('INICIANDO SCROLL MEGA OTIMIZADO v6.0.2...');
+        this.log(`📊 Membros estimados: ${this.state.estimatedMembers}`);
         this.log('========================================');
 
         const CONFIG = this.CONFIG.SCROLL;
@@ -389,6 +393,20 @@ const WhatsAppExtractor = {
         const initialNew = this.extractVisibleMembersOptimized(scrollContainer);
         this.log(`✅ Captura inicial: ${initialNew} membros`);
 
+        // Função para calcular progresso proporcional (40% a 95%)
+        const calculateProgress = (membersCount) => {
+            const extractionRange = 55; // 40% até 95% = 55 pontos
+            const baseProgress = 40;
+            const memberProgress = (membersCount / this.state.estimatedMembers) * extractionRange;
+            const totalProgress = Math.min(95, baseProgress + memberProgress);
+            
+            // REGRA ABSOLUTA: progresso NUNCA regride
+            const currentProgress = Math.max(this.state.lastReportedProgress, totalProgress);
+            this.state.lastReportedProgress = currentProgress;
+            
+            return currentProgress;
+        };
+
         // Progress debounced
         const debouncedProgress = this.debounce((data) => {
             if (onProgress) onProgress(data);
@@ -397,9 +415,11 @@ const WhatsAppExtractor = {
         // Enviar progresso inicial
         if (onProgress) {
             const membersArray = Array.from(this.state.members.values());
+            const progress = calculateProgress(membersArray.length);
             onProgress({
                 loaded: membersArray.length,
-                members: membersArray
+                members: membersArray,
+                progress: progress
             });
         }
 
@@ -489,22 +509,25 @@ const WhatsAppExtractor = {
 
             // Log periódico
             if (scrollAttempts % 20 === 0 || newMembers > 0) {
-                const progress = Math.min(100, Math.round(
+                const scrollProgress = Math.min(100, Math.round(
                     (scrollContainer.scrollTop / (scrollContainer.scrollHeight - scrollContainer.clientHeight)) * 100
                 ));
+                const extractionProgress = calculateProgress(totalMembers);
                 this.log(
                     `Scroll ${scrollAttempts}: +${newMembers} | ` +
-                    `Total: ${totalMembers} | ${progress}% | ` +
-                    `Speed: ${currentDelay}ms/${scrollStep.toFixed(0)}px`
+                    `Total: ${totalMembers} | Extração: ${extractionProgress.toFixed(1)}% | ` +
+                    `Scroll: ${scrollProgress}% | Speed: ${currentDelay}ms/${scrollStep.toFixed(0)}px`
                 );
             }
 
-            // Progresso debounced
+            // Progresso debounced com cálculo proporcional
             if (scrollAttempts % 3 === 0 || newMembers > 0) {
                 const membersArray = Array.from(this.state.members.values());
+                const progress = calculateProgress(membersArray.length);
                 debouncedProgress({
                     loaded: membersArray.length,
-                    members: membersArray
+                    members: membersArray,
+                    progress: progress
                 });
             }
 
@@ -557,12 +580,16 @@ const WhatsAppExtractor = {
 
         this.extractVisibleMembersOptimized(scrollContainer);
 
-        // Progresso final
+        // Progresso final (garantir 95%)
         if (onProgress) {
             const membersArray = Array.from(this.state.members.values());
+            const finalProgress = Math.max(this.state.lastReportedProgress, 95);
+            this.state.lastReportedProgress = finalProgress;
+            
             onProgress({
                 loaded: membersArray.length,
-                members: membersArray
+                members: membersArray,
+                progress: finalProgress
             });
         }
 
@@ -574,6 +601,7 @@ const WhatsAppExtractor = {
         this.log('========================================');
         this.log('✅ EXTRAÇÃO COMPLETA v6.0.2!');
         this.log(`📊 Total: ${this.state.members.size} membros únicos`);
+        this.log(`📊 Estimativa inicial: ${this.state.estimatedMembers} membros`);
         this.log(`📊 Scrolls: ${scrollAttempts} tentativas`);
         this.log(`📊 Velocidade média: ${(this.state.members.size / scrollAttempts).toFixed(2)} membros/scroll`);
         this.log('========================================');
@@ -680,6 +708,9 @@ const WhatsAppExtractor = {
                 if (items.length > 0) {
                     this.log(`✅ Modal encontrado: ${items.length} itens`);
                     
+                    // Tentar detectar número total de membros do header do modal
+                    this.detectEstimatedMembers(dialog);
+                    
                     // Encontrar container scrollável que contém os itens
                     let scrollContainer = null;
                     
@@ -708,6 +739,38 @@ const WhatsAppExtractor = {
         } catch (error) {
             this.log('❌ Erro ao buscar modal:', error);
             return null;
+        }
+    },
+
+    detectEstimatedMembers(dialog) {
+        try {
+            // Procurar texto com padrão "XXX membros" ou "XXX members"
+            const allText = dialog.textContent || '';
+            const memberPatterns = [
+                /(\d+)\s*membros/i,
+                /(\d+)\s*members/i,
+                /(\d+)\s*participantes/i,
+                /(\d+)\s*participants/i
+            ];
+            
+            for (const pattern of memberPatterns) {
+                const match = allText.match(pattern);
+                if (match && match[1]) {
+                    const count = parseInt(match[1], 10);
+                    if (count > 0 && count < 100000) { // Validação básica
+                        this.state.estimatedMembers = count;
+                        this.log(`📊 Estimativa detectada: ${count} membros`);
+                        return;
+                    }
+                }
+            }
+            
+            // Fallback: usar 100 como padrão
+            this.state.estimatedMembers = 100;
+            this.log('📊 Usando estimativa padrão: 100 membros');
+        } catch (error) {
+            this.state.estimatedMembers = 100;
+            this.log('⚠️ Erro ao detectar estimativa, usando padrão: 100');
         }
     },
 
@@ -752,6 +815,7 @@ const WhatsAppExtractor = {
             this.state.shouldStop = false;
             this.state.members.clear();
             this.state.memberCache.clear();
+            this.state.lastReportedProgress = 40; // Reset para nova extração
 
             this.log('=== INICIANDO EXTRAÇÃO v6.0.2 MEGA OTIMIZADA ===');
 

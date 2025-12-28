@@ -746,11 +746,19 @@ class PopupController {
 
             this.setLoading(this.btnExtract, true);
             
+            // INÍCIO IMEDIATO - 5% (feedback visual imediato)
+            this.showStatus('🚀 Iniciando processo...', 5);
+            
+            // Reset do tracker de progresso para nova extração
+            if (typeof lastReportedProgress !== 'undefined') {
+                lastReportedProgress = 5;
+            }
+            
             // Atualizar estado
             this.extractionState.isRunning = true;
             this.extractionState.isPaused = false;
             this.extractionState.currentGroup = this.selectedGroup;
-            this.extractionState.progress = 0;
+            this.extractionState.progress = 5;
             this.extractionState.membersCount = 0;
             
             // Notificar background que extração iniciou
@@ -826,20 +834,24 @@ class PopupController {
         const INITIAL_WAIT_MS_ARCHIVED = 2500;
         const RETRY_WAIT_MS = 1000;
         let lastError = null;
+        let currentProgress = 5; // Começa de onde parou (REGRA: NUNCA regride)
         
         for (let attempt = 1; attempt <= MAX_EXTRACTION_RETRIES; attempt++) {
             try {
                 console.log(`[Popup] 🔄 Tentativa de extração ${attempt}/${MAX_EXTRACTION_RETRIES}`);
                 
-                // Atualizar UI com progresso dinâmico
+                // Atualizar UI com progresso que NUNCA regride
                 if (attempt > 1) {
-                    const retryProgress = 15 + (attempt - 1) * 10; // 25% for retry 2, 35% for retry 3
-                    this.showStatus(`🔄 Retry automático (${attempt}/${MAX_EXTRACTION_RETRIES})...`, retryProgress);
+                    // Retry avança levemente em vez de regredir (+2% por tentativa)
+                    currentProgress = Math.max(currentProgress, 10 + (attempt - 1) * 2);
+                    this.showStatus(`🔄 Retry automático (${attempt}/${MAX_EXTRACTION_RETRIES})...`, currentProgress);
                     await this.delay(RETRY_DELAY_MS);
                 }
                 
+                // Navegando - progride para ~15%
+                currentProgress = Math.max(currentProgress, 10 + attempt * 2);
                 const groupStatus = this.selectedGroup.isArchived ? 'arquivado' : 'ativo';
-                this.showStatus(`🔍 Navegando até o grupo ${groupStatus}...`, 10);
+                this.showStatus(`🔍 Navegando até o grupo ${groupStatus}...`, currentProgress);
                 
                 // Navegar até o grupo
                 const navResult = await this.sendMessage('navigateToGroup', {
@@ -852,29 +864,44 @@ class PopupController {
                     throw new Error(navResult?.error || 'Falha na navegação');
                 }
                 
-                this.showStatus('📂 Abrindo informações...', 30);
+                // Abrindo info - progride para ~25%
+                currentProgress = Math.max(currentProgress, 20 + attempt * 2);
+                this.showStatus('📂 Abrindo informações...', currentProgress);
+                
                 // Aguardar mais tempo na primeira tentativa, com tempo extra para arquivados
                 const waitTime = attempt === 1 
                     ? (this.selectedGroup.isArchived ? INITIAL_WAIT_MS_ARCHIVED : INITIAL_WAIT_MS_ACTIVE)
                     : RETRY_WAIT_MS;
                 await this.delay(waitTime);
                 
-                this.showStatus('🔍 Iniciando extração...', 40);
+                // Aguardando modal - progride para ~35%
+                currentProgress = Math.max(currentProgress, 30 + attempt * 2);
+                this.showStatus('⏳ Preparando extração...', currentProgress);
+                
+                // Extração - progride de 40% até 95% (será atualizado pelo content script)
+                currentProgress = Math.max(currentProgress, 40);
+                this.showStatus('🔍 Extraindo membros...', currentProgress);
+                
                 // Tentar extrair
                 const extractResult = await this.sendMessage('extractMembers');
                 
                 if (extractResult && extractResult.success) {
                     console.log(`[Popup] ✅ Extração bem-sucedida na tentativa ${attempt}`);
+                    // Finalizando - progride para 98%
+                    this.showStatus('✅ Finalizando...', 98);
                     return extractResult; // Sucesso!
                 }
                 
                 // Se retornou mas sem sucesso
                 lastError = new Error(extractResult?.error || 'Extração falhou');
                 console.log(`[Popup] ⚠️ Tentativa ${attempt} falhou: ${lastError.message}`);
+                // Nota: currentProgress já usa Math.max, então não regride
                 
             } catch (error) {
                 lastError = error;
                 console.error(`[Popup] ❌ Erro na tentativa ${attempt}:`, error.message);
+                // Nota: progresso mantido, não regride
+                console.log(`[Popup] Progresso mantido em ${currentProgress}%`);
             }
             
             // Se não é a última tentativa, continuar
@@ -1356,25 +1383,31 @@ class PopupController {
 // ========================================
 // LISTENER PARA PROGRESSO
 // ========================================
+let lastReportedProgress = 0; // Track para garantir que nunca regride
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === 'extractionProgress') {
         const statusText = document.getElementById('statusText');
         const progressFill = document.getElementById('progressFill');
         const progressPercent = document.getElementById('progressPercent');
 
+        // REGRA ABSOLUTA: progresso NUNCA regride
+        const currentProgress = Math.max(lastReportedProgress, message.progress || 0);
+        lastReportedProgress = currentProgress;
+
         if (statusText) {
             statusText.textContent = `${message.status} (${message.count} membros)`;
         }
-        if (progressFill && message.progress) {
-            progressFill.style.width = `${message.progress}%`;
+        if (progressFill) {
+            progressFill.style.width = `${currentProgress}%`;
         }
-        if (progressPercent && message.progress) {
-            progressPercent.textContent = `${Math.round(message.progress)}%`;
+        if (progressPercent) {
+            progressPercent.textContent = `${Math.round(currentProgress)}%`;
         }
         
         // Atualizar estado de extração
         if (window.popupController) {
-            window.popupController.extractionState.progress = message.progress || 0;
+            window.popupController.extractionState.progress = currentProgress;
             window.popupController.extractionState.membersCount = message.count || 0;
             
             // Salvar estado periodicamente (a cada 10 membros)

@@ -967,15 +967,33 @@ async function extractMembers() {
             throw new Error('Módulo de extração não carregado. Recarregue a página.');
         }
 
+        // Obter estimativa de membros do grupo (se disponível no selectedGroup)
+        let estimatedMembers = 100; // default fallback
+        
         return new Promise((resolve, reject) => {
+            let lastReportedProgress = 40; // Inicia em 40%
+            
             WhatsAppExtractor.extractMembers(
                 (progress) => {
                     try {
+                        // Calcular progresso proporcional baseado no memberCount estimado
+                        const extractionRange = 55; // 40% até 95% = 55 pontos
+                        const baseProgress = 40;
+                        const membersFound = progress.count || 0;
+                        
+                        // Cálculo proporcional
+                        const memberProgress = (membersFound / estimatedMembers) * extractionRange;
+                        const totalProgress = Math.min(95, baseProgress + memberProgress);
+                        
+                        // REGRA ABSOLUTA: progresso NUNCA regride
+                        const currentProgress = Math.max(lastReportedProgress, totalProgress);
+                        lastReportedProgress = currentProgress;
+                        
                         chrome.runtime.sendMessage({
                             type: 'extractionProgress',
                             status: progress.status,
-                            count: progress.count,
-                            progress: Math.min(100, (progress.count / 200) * 100),
+                            count: membersFound,
+                            progress: currentProgress,
                             members: progress.members || []
                         });
                     } catch (e) {
