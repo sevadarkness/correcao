@@ -74,6 +74,18 @@ body {
 
 /* ========================================
    TOP PANEL - NAVIGATION TABS
+   
+   DESIGN NOTES:
+   - Fixed height: 56px
+   - Uses same color scheme as header
+   - Tabs have hover and active states
+   - Active tab has green underline indicator
+   - Smooth transitions on all interactions
+   
+   CUSTOMIZATION:
+   - To change tab height: modify height property
+   - To change active indicator: modify box-shadow in .top-panel-tab.active
+   - To add more space for left/right sections: adjust flex values
 ======================================== */
 .top-panel {
     display: flex;

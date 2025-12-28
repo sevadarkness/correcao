@@ -433,7 +433,20 @@ class PopupController {
     // ========================================
     /**
      * Switch between tabs in the top panel
-     * @param {string} tabName - 'extractor' or 'tools'
+     * 
+     * INTEGRATION NOTES FOR FUTURE FEATURES:
+     * - Add new tabs by:
+     *   1. Adding a button in HTML with class "top-panel-tab" and data-tab="your-tab-name"
+     *   2. Creating a tab content div with id="tabYourTabName" and class="tab-content hidden"
+     *   3. The tab switching will work automatically with existing code
+     * 
+     * - To add actions when switching to a specific tab:
+     *   Add conditions in this method to execute custom logic
+     * 
+     * - To programmatically switch tabs from other parts of the code:
+     *   Call: popupController.switchTab('tab-name')
+     * 
+     * @param {string} tabName - 'extractor' or 'tools' (or future tab names)
      */
     switchTab(tabName) {
         if (this.currentTab === tabName) return;
@@ -458,6 +471,16 @@ class PopupController {
             this.tabExtractor?.classList.add('hidden');
             this.tabTools?.classList.remove('hidden');
         }
+        
+        // INTEGRATION HOOK: Add custom logic for new tabs here
+        // Example:
+        // else if (tabName === 'new-feature') {
+        //     this.tabExtractor?.classList.add('hidden');
+        //     this.tabTools?.classList.add('hidden');
+        //     this.tabNewFeature?.classList.remove('hidden');
+        //     // Initialize new feature if needed
+        //     this.initializeNewFeature();
+        // }
     }
 
     // ========================================
