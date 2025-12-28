@@ -738,6 +738,43 @@ async function searchAndOpenGroup(groupName) {
                 console.log(`[WA Extractor] ✅ Grupo encontrado na pesquisa: "${title}"`);
                 const clickTarget = findClickableParent(span);
                 simulateClick(clickTarget);
+                
+                // Delay maior após clique (3000ms)
+                await sleep(3000);
+
+                // Aguardar #main carregar com retry
+                let mainLoaded = false;
+                for (let i = 0; i < 10; i++) {
+                    if (document.querySelector('#main header')) {
+                        mainLoaded = true;
+                        console.log(`[WA Extractor] ✅ Chat carregou na tentativa ${i + 1}`);
+                        break;
+                    }
+                    console.log(`[WA Extractor] ⏳ Aguardando chat... ${i + 1}/10`);
+                    await sleep(500);
+                }
+
+                // Retry se #main não carregar
+                if (!mainLoaded) {
+                    console.log('[WA Extractor] ⚠️ Chat não carregou, tentando clicar novamente...');
+                    simulateClick(clickTarget);
+                    await sleep(2000);
+                    
+                    for (let i = 0; i < 5; i++) {
+                        if (document.querySelector('#main header')) {
+                            mainLoaded = true;
+                            console.log(`[WA Extractor] ✅ Chat carregou no retry ${i + 1}`);
+                            break;
+                        }
+                        await sleep(500);
+                    }
+                }
+
+                if (!mainLoaded) {
+                    console.log('[WA Extractor] ❌ Chat não carregou após múltiplas tentativas');
+                    return false;
+                }
+
                 return true;
             }
         }
