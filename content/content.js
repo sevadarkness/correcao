@@ -51,7 +51,7 @@ function callPageAPI(type, data = {}) {
         const timeout = setTimeout(() => {
             window.removeEventListener('message', handler);
             console.log('[WA Extractor] ⏱️ Timeout:', type);
-            resolve({ success: false, error: 'Timeout' });
+            resolve({ success: false, error: '⏱️ A conexão está lenta. Verifique sua internet e tente novamente.' });
         }, timeoutDuration);
 
         function handler(event) {
@@ -113,21 +113,21 @@ async function handleMessage(message) {
                 WhatsAppExtractor.pauseExtraction();
                 return { success: true };
             }
-            return { success: false, error: 'Extractor não disponível' };
+            return { success: false, error: '🔄 Por favor, recarregue a página do WhatsApp Web e tente novamente.' };
 
         case 'resumeExtraction':
             if (typeof WhatsAppExtractor !== 'undefined') {
                 WhatsAppExtractor.resumeExtraction();
                 return { success: true };
             }
-            return { success: false, error: 'Extractor não disponível' };
+            return { success: false, error: '🔄 Por favor, recarregue a página do WhatsApp Web e tente novamente.' };
 
         case 'stopExtraction':
             if (typeof WhatsAppExtractor !== 'undefined') {
                 WhatsAppExtractor.stopExtraction();
                 return { success: true };
             }
-            return { success: false, error: 'Extractor não disponível' };
+            return { success: false, error: '🔄 Por favor, recarregue a página do WhatsApp Web e tente novamente.' };
             
         case 'getGroupName':
             return { 
@@ -136,7 +136,7 @@ async function handleMessage(message) {
             };
             
         default:
-            return { success: false, error: 'Ação desconhecida' };
+            return { success: false, error: '⚠️ Operação não reconhecida. Recarregue a extensão.' };
     }
 }
 
@@ -190,7 +190,7 @@ async function getGroupsFromDOM(includeArchived = true) {
 
     const chatList = document.querySelector('#pane-side');
     if (!chatList) {
-        return { success: false, error: 'Lista de chats não encontrada.' };
+        return { success: false, error: '📱 Lista de chats não encontrada. Verifique se o WhatsApp Web está carregado.' };
     }
 
     const chatElements = chatList.querySelectorAll('[data-id]');
@@ -284,7 +284,7 @@ async function navigateToGroupWithRetry(groupId, groupName, isArchived, maxRetri
         }
     }
     
-    return { success: false, error: 'Máximo de tentativas excedido' };
+    return { success: false, error: '❌ Não foi possível abrir o grupo após várias tentativas. Tente novamente.' };
 }
 
 // ========================================
@@ -371,7 +371,7 @@ async function navigateToGroup(groupId, groupName, isArchived = false) {
             }
         }
 
-        throw new Error(`Não foi possível abrir o grupo "${groupName}". Tente clicar manualmente no grupo e depois extrair.`);
+        throw new Error(`📱 Não foi possível abrir as informações do grupo "${groupName}". Tente clicar manualmente no grupo e depois extrair.`);
 
     } catch (error) {
         console.error('[WA Extractor] ❌ Erro:', error);
@@ -987,7 +987,7 @@ async function extractMembers() {
         console.log('[WA Extractor] Iniciando extração...');
 
         if (typeof WhatsAppExtractor === 'undefined') {
-            throw new Error('Módulo de extração não carregado. Recarregue a página.');
+            throw new Error('🔄 Módulo de extração não carregado. Recarregue a página do WhatsApp Web.');
         }
 
         // Obter estimativa de membros do grupo (se disponível no selectedGroup)
