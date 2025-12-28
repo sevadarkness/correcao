@@ -179,6 +179,14 @@ async function getGroupsFromDOM(includeArchived = true) {
 
     const chatElements = chatList.querySelectorAll('[data-id]');
 
+    // Textos inválidos que indicam grupos excluídos/desativados
+    const invalidTexts = [
+        'você foi removido', 'you were removed',
+        'você saiu', 'you left',
+        'grupo excluído', 'group deleted',
+        'não é mais participante', 'no longer a participant'
+    ];
+
     for (const element of chatElements) {
         const dataId = element.getAttribute('data-id') || '';
         if (!dataId.includes('@g.us')) continue;
@@ -190,6 +198,20 @@ async function getGroupsFromDOM(includeArchived = true) {
 
         if (!name || name.length < 2 || name.length > 100) continue;
         if (/^(ontem|hoje|yesterday|today|\d{1,2}:\d{2})/i.test(name)) continue;
+
+        // Verificar o texto completo do elemento para detectar grupos inválidos
+        const elementText = element.textContent?.toLowerCase() || '';
+        let isInvalidGroup = false;
+        
+        for (const invalidText of invalidTexts) {
+            if (elementText.includes(invalidText.toLowerCase())) {
+                console.log(`[WA Extractor] ⚠️ Grupo filtrado (texto inválido): "${name}"`);
+                isInvalidGroup = true;
+                break;
+            }
+        }
+        
+        if (isInvalidGroup) continue;
 
         groups.push({
             id: dataId,
