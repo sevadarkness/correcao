@@ -71,6 +71,9 @@
         // Setup event listeners
         setupEventListeners(panel);
         
+        // Register message listener (only once)
+        registerMessageListener();
+        
         console.log('[TopPanel] ✅ Panel injected successfully (hidden by default)');
     }
 
@@ -130,7 +133,17 @@
                 });
             });
         });
+    }
 
+    // Setup message listener (only once, outside of setupEventListeners to prevent duplicates)
+    let messageListenerRegistered = false;
+    
+    function registerMessageListener() {
+        if (messageListenerRegistered) {
+            console.log('[TopPanel] ⚠️ Message listener already registered, skipping');
+            return;
+        }
+        
         // Listen for messages from background script to show/hide panel
         chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             if (message.action === 'showTopPanel') {
@@ -142,6 +155,9 @@
             }
             return true; // Keep message channel open for async response
         });
+        
+        messageListenerRegistered = true;
+        console.log('[TopPanel] ✅ Message listener registered');
     }
 
     // Initialize

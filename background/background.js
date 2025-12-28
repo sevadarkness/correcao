@@ -59,10 +59,12 @@ chrome.runtime.onConnect.addListener((port) => {
         
         // Send message to the specific tab where side panel was opened
         const targetTabId = sidePanelTabId;
-        if (targetTabId) {
+        if (targetTabId !== null && targetTabId !== undefined) {
             chrome.tabs.sendMessage(targetTabId, { action: 'showTopPanel' })
                 .then(() => console.log('[WA Extractor] ✅ Show top panel message sent to tab', targetTabId))
                 .catch(err => console.log('[WA Extractor] Top panel message failed (may not be on WhatsApp):', err.message));
+        } else {
+            console.warn('[WA Extractor] ⚠️ No tab ID available for showing top panel');
         }
         
         port.onDisconnect.addListener(() => {
@@ -70,7 +72,7 @@ chrome.runtime.onConnect.addListener((port) => {
             sidePanelOpen = false;
             
             // Send message to the specific tab to hide top panel
-            if (targetTabId) {
+            if (targetTabId !== null && targetTabId !== undefined) {
                 chrome.tabs.sendMessage(targetTabId, { action: 'hideTopPanel' })
                     .then(() => console.log('[WA Extractor] ✅ Hide top panel message sent to tab', targetTabId))
                     .catch(err => console.log('[WA Extractor] Top panel hide message failed:', err.message));

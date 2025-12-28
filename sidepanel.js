@@ -78,6 +78,8 @@ class PopupController {
             });
         } catch (error) {
             console.error('[SidePanel] Error connecting to background:', error);
+            // Extension context may be invalid - log and continue
+            this.backgroundPort = null;
         }
     }
 
