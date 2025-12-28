@@ -6,3 +6,4 @@
 
 # macOS Resource Forks
 ._*
+*.backup
