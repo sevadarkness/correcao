@@ -1,5 +1,5 @@
-// background.js - WhatsApp Group Extractor v7.0.0 - HEADLESS EXTRACTION
-console.log('[WA Extractor] Background script carregado v7.0.0 - Headless Mode');
+// background.js - WhatsApp Group Extractor v7.1.0 - HEADLESS EXTRACTION
+console.log('[WA Extractor] Background script carregado v7.1.0 - Headless Mode');
 
 // ========================================
 // HEADLESS EXTRACTION CONSTANTS
@@ -129,6 +129,42 @@ function stopKeepalive() {
 }
 
 // ========================================
+// GET OR CREATE WORKER TAB
+// ========================================
+async function getOrCreateWorkerTab() {
+    console.log('[WA Extractor] 🔍 Looking for existing WhatsApp tab...');
+    
+    // 1. Try to find existing WhatsApp tab
+    const waTabs = await chrome.tabs.query({ 
+        url: '*://web.whatsapp.com/*' 
+    });
+    
+    if (waTabs.length > 0) {
+        // ✅ Use existing tab as worker
+        console.log(`[WA Extractor] ✅ Using existing tab: ${waTabs[0].id}`);
+        return {
+            tabId: waTabs[0].id,
+            created: false,  // Not created, already existed
+            shouldClose: false  // DO NOT close at the end
+        };
+    }
+    
+    // 2. Create hidden tab (only if none exists)
+    console.log('[WA Extractor] 📂 Creating hidden tab...');
+    const tab = await chrome.tabs.create({
+        url: 'https://web.whatsapp.com',
+        active: false
+    });
+    
+    console.log(`[WA Extractor] ✅ Hidden tab created: ${tab.id}`);
+    return {
+        tabId: tab.id,
+        created: true,  // Was created now
+        shouldClose: true  // Close at the end
+    };
+}
+
+// ========================================
 // HEADLESS EXTRACTION ORCHESTRATOR
 // ========================================
 async function startHeadlessExtraction(jobId, groupId, groupName, isArchived) {
@@ -155,6 +191,7 @@ async function startHeadlessExtraction(jobId, groupId, groupName, isArchived) {
         isArchived,
         state: JobState.IDLE,
         workerTabId: null,
+        shouldCloseTab: false,
         progress: 0,
         membersCount: 0,
         startTime: Date.now(),
@@ -166,19 +203,27 @@ async function startHeadlessExtraction(jobId, groupId, groupName, isArchived) {
     
     try {
         // State: BOOTING_WORKER
-        updateJobState(JobState.BOOTING_WORKER, 'Criando aba oculta...');
+        updateJobState(JobState.BOOTING_WORKER, 'Preparando extração...');
         
-        const tab = await createHiddenWorkerTab();
-        currentJob.workerTabId = tab.id;
+        const tabInfo = await getOrCreateWorkerTab();
+        currentJob.workerTabId = tabInfo.tabId;
+        currentJob.shouldCloseTab = tabInfo.shouldClose;
         
-        // Wait for tab to load
-        await waitForTabLoad(tab.id);
+        // Wait for tab to load only if we just created it
+        if (tabInfo.created) {
+            console.log('[WA Extractor] ⏳ Waiting for newly created tab to load...');
+            await waitForTabLoad(tabInfo.tabId);
+        } else {
+            console.log('[WA Extractor] ✅ Using existing tab, skipping load wait');
+            // Small delay to ensure content script is ready
+            await new Promise(resolve => setTimeout(resolve, 1000));
+        }
         
         // State: WAITING_READY
         updateJobState(JobState.WAITING_READY, 'Aguardando conexão...');
         
         // Send handshake
-        const pongReceived = await sendMessageToWorker(tab.id, {
+        const pongReceived = await sendMessageToWorker(currentJob.workerTabId, {
             type: 'HEADLESS_PING',
             jobId
         }, WORKER_READY_TIMEOUT_MS);
@@ -191,7 +236,7 @@ async function startHeadlessExtraction(jobId, groupId, groupName, isArchived) {
         updateJobState(JobState.CHECKING_SESSION, 'Verificando WhatsApp...');
         
         // Check WhatsApp state
-        const stateResult = await checkWhatsAppState(tab.id, jobId);
+        const stateResult = await checkWhatsAppState(currentJob.workerTabId, jobId);
         
         if (stateResult.state !== 'READY') {
             throw new Error(stateResult.state); // LOGIN_REQUIRED, CONNECTING, etc.
@@ -201,7 +246,7 @@ async function startHeadlessExtraction(jobId, groupId, groupName, isArchived) {
         updateJobState(JobState.RUNNING, 'Extraindo membros...');
         
         // Start extraction
-        const extractionResult = await sendMessageToWorker(tab.id, {
+        const extractionResult = await sendMessageToWorker(currentJob.workerTabId, {
             type: 'HEADLESS_EXTRACT_GROUP',
             jobId,
             groupId,
@@ -245,18 +290,6 @@ async function startHeadlessExtraction(jobId, groupId, groupName, isArchived) {
         // Cleanup
         await cleanupJob();
     }
-}
-
-async function createHiddenWorkerTab() {
-    console.log('[WA Extractor] 📄 Creating hidden tab...');
-    
-    const tab = await chrome.tabs.create({
-        url: 'https://web.whatsapp.com',
-        active: false // IMPORTANT: hidden tab
-    });
-    
-    console.log(`[WA Extractor] ✅ Hidden tab created: ${tab.id}`);
-    return tab;
 }
 
 async function waitForTabLoad(tabId) {
@@ -366,13 +399,17 @@ function updateJobState(state, message) {
 async function cleanupJob() {
     console.log('[WA Extractor] 🧹 Cleaning up job...');
     
-    // Close worker tab
+    // Close worker tab only if it was created by us
     if (currentJob && currentJob.workerTabId) {
-        try {
-            await chrome.tabs.remove(currentJob.workerTabId);
-            console.log(`[WA Extractor] ✅ Worker tab ${currentJob.workerTabId} closed`);
-        } catch (error) {
-            console.error('[WA Extractor] Error closing tab:', error);
+        if (currentJob.shouldCloseTab) {
+            try {
+                await chrome.tabs.remove(currentJob.workerTabId);
+                console.log(`[WA Extractor] 🗑️ Hidden tab ${currentJob.workerTabId} closed`);
+            } catch (error) {
+                console.error('[WA Extractor] Error closing tab:', error);
+            }
+        } else {
+            console.log(`[WA Extractor] ✅ Existing tab ${currentJob.workerTabId} kept open`);
         }
     }
     

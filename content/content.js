@@ -1,5 +1,5 @@
-// content.js - WhatsApp Group Extractor v7.0.0 - HEADLESS WORKER
-console.log('[WA Extractor] Content script v7.0.0 carregado (Headless Worker)');
+// content.js - WhatsApp Group Extractor v7.1.0 - HEADLESS WORKER
+console.log('[WA Extractor] Content script v7.1.0 carregado (Headless Worker)');
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
