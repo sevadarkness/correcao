@@ -11,6 +11,42 @@ let extractionState = {
     status: 'idle' // 'idle', 'running', 'paused', 'completed', 'error'
 };
 
+// Configurar Side Panel
+chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false }).catch(console.error);
+
+// Listener para abrir Side Panel ao clicar no ícone
+chrome.action.onClicked.addListener(async (tab) => {
+    try {
+        // Verificar se está no WhatsApp Web
+        let isWhatsAppWeb = false;
+        try {
+            const url = new URL(tab?.url || '');
+            isWhatsAppWeb = url.hostname === 'web.whatsapp.com';
+        } catch (e) {
+            isWhatsAppWeb = false;
+        }
+        
+        if (isWhatsAppWeb) {
+            // Abrir Side Panel
+            await chrome.sidePanel.open({ tabId: tab.id });
+            console.log('[WA Extractor] Side Panel aberto');
+        } else {
+            // Abrir WhatsApp Web em nova aba
+            const newTab = await chrome.tabs.create({ url: 'https://web.whatsapp.com' });
+            // Aguardar um pouco e abrir o Side Panel
+            setTimeout(async () => {
+                try {
+                    await chrome.sidePanel.open({ tabId: newTab.id });
+                } catch (e) {
+                    console.log('[WA Extractor] Aguardando página carregar...');
+                }
+            }, 3000);
+        }
+    } catch (error) {
+        console.error('[WA Extractor] Erro ao abrir Side Panel:', error);
+    }
+});
+
 // Keepalive para manter o service worker ativo
 let keepaliveInterval = null;
 
