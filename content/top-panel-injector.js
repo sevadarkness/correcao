@@ -80,7 +80,11 @@
     function compressWhatsAppContent() {
         const whatsappRoot = document.getElementById('app');
         if (whatsappRoot) {
-            whatsappRoot.style.marginTop = '64px'; // Height of top panel (updated to 64px)
+            // Use setProperty with 'important' to override WhatsApp's styles
+            whatsappRoot.style.setProperty('margin-top', '64px', 'important');
+            whatsappRoot.style.setProperty('height', 'calc(100vh - 64px)', 'important');
+            // Add body class for CSS-based control
+            document.body.classList.add('wa-extractor-top-panel-visible');
             console.log('[TopPanel] ✅ WhatsApp content compressed');
         }
     }
@@ -103,8 +107,11 @@
             // Restore WhatsApp to normal size
             const whatsappRoot = document.getElementById('app');
             if (whatsappRoot) {
-                whatsappRoot.style.marginTop = '0';
+                whatsappRoot.style.removeProperty('margin-top');
+                whatsappRoot.style.removeProperty('height');
             }
+            // Remove body class
+            document.body.classList.remove('wa-extractor-top-panel-visible');
             console.log('[TopPanel] ✅ Top panel hidden');
         }
     }
