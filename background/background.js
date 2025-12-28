@@ -5,6 +5,7 @@ console.log('[WA Extractor] Background script carregado v6.0.8');
 let extractionLock = false;
 let extractionLockTimeout = null;
 const LOCK_TIMEOUT_MS = 300000; // 5 minutes timeout for safety
+const SIDE_PANEL_OPEN_DELAY = 1000; // Delay before opening Side Panel after redirect
 
 // Function to clear lock with timeout
 function setExtractionLock(value) {
@@ -69,16 +70,22 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
 });
 
 // Configuração inicial para todas as abas existentes
-chrome.tabs.query({}).then(tabs => {
-    tabs.forEach(async (tab) => {
-        if (tab.id) {
-            const isWhatsApp = tab.url?.startsWith('https://web.whatsapp.com');
-            await chrome.sidePanel.setOptions({
-                tabId: tab.id,
-                enabled: isWhatsApp
-            }).catch(() => {});
-        }
-    });
+chrome.tabs.query({}).then(async tabs => {
+    await Promise.all(
+        tabs.map(async (tab) => {
+            if (tab.id) {
+                const isWhatsApp = tab.url?.startsWith('https://web.whatsapp.com');
+                try {
+                    await chrome.sidePanel.setOptions({
+                        tabId: tab.id,
+                        enabled: isWhatsApp
+                    });
+                } catch (error) {
+                    // Ignorar erros (tab pode ter sido fechada)
+                }
+            }
+        })
+    );
 });
 
 // Listener para abrir Side Panel ao clicar no ícone
@@ -101,8 +108,7 @@ chrome.action.onClicked.addListener(async (tab) => {
             // Aguardar a aba carregar
             chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
                 if (tabId === newTab.id && info.status === 'complete') {
-                    chrome.tabs.onUpdated.removeListener(listener);
-                    
+                    // Aguardar um momento antes de abrir o Side Panel para garantir estabilidade
                     setTimeout(async () => {
                         try {
                             await chrome.sidePanel.setOptions({
@@ -111,10 +117,21 @@ chrome.action.onClicked.addListener(async (tab) => {
                             });
                             await chrome.sidePanel.open({ tabId: newTab.id });
                             console.log('[WA Extractor] Side Panel aberto após redirecionamento');
+                            chrome.tabs.onUpdated.removeListener(listener);
                         } catch (e) {
                             console.log('[WA Extractor] Erro ao abrir Side Panel:', e);
+                            // Tentar novamente se falhar na primeira vez
+                            setTimeout(async () => {
+                                try {
+                                    await chrome.sidePanel.open({ tabId: newTab.id });
+                                    chrome.tabs.onUpdated.removeListener(listener);
+                                } catch (retryError) {
+                                    console.error('[WA Extractor] Falha ao abrir Side Panel após retry:', retryError);
+                                    chrome.tabs.onUpdated.removeListener(listener);
+                                }
+                            }, SIDE_PANEL_OPEN_DELAY);
                         }
-                    }, 1000);
+                    }, SIDE_PANEL_OPEN_DELAY);
                 }
             });
         }
