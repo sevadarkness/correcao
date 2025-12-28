@@ -58,7 +58,8 @@ class PopupController {
         chrome.tabs.onActivated.addListener(async (activeInfo) => {
             try {
                 const tab = await chrome.tabs.get(activeInfo.tabId);
-                if (tab.url?.includes('web.whatsapp.com')) {
+                // Validação mais segura da URL
+                if (tab.url && this.isWhatsAppUrl(tab.url)) {
                     console.log('[SidePanel] Tab do WhatsApp ativada');
                     this.checkWhatsAppTab();
                 }
@@ -70,11 +71,24 @@ class PopupController {
 
         // Listener para quando uma tab é atualizada
         chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-            if (changeInfo.status === 'complete' && tab.url?.includes('web.whatsapp.com')) {
+            if (changeInfo.status === 'complete' && tab.url && this.isWhatsAppUrl(tab.url)) {
                 console.log('[SidePanel] WhatsApp Web carregou');
                 this.checkWhatsAppTab();
             }
         });
+    }
+
+    // ========================================
+    // VALIDAÇÃO DE URL DO WHATSAPP
+    // ========================================
+    isWhatsAppUrl(url) {
+        try {
+            const urlObj = new URL(url);
+            return urlObj.hostname === 'web.whatsapp.com' && 
+                   (urlObj.protocol === 'https:' || urlObj.protocol === 'http:');
+        } catch (e) {
+            return false;
+        }
     }
 
     waitForDependencies() {
