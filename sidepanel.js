@@ -63,7 +63,7 @@ class PopupController {
 
     // Notify background that side panel has opened
     notifyBackgroundPanelOpen() {
-        // Check if already connected to prevent duplicate connections
+        // Prevent duplicate port connections which would cause memory leaks and multiple event handlers
         if (this.backgroundPort) {
             console.log('[SidePanel] ⚠️ Already connected to background, skipping');
             return;

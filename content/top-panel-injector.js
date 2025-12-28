@@ -24,7 +24,7 @@
     function createTopPanel() {
         const panel = document.createElement('div');
         panel.id = 'wa-extractor-top-panel';
-        panel.className = 'wa-extractor-top-panel hidden'; // Start hidden
+        panel.className = 'wa-extractor-top-panel hidden';
         
         panel.innerHTML = `
             <div class="top-panel-container">
@@ -65,7 +65,7 @@
         const panel = createTopPanel();
         document.body.insertBefore(panel, document.body.firstChild);
         
-        // WhatsApp content compression occurs when top panel becomes visible to maintain synchronization with side panel
+        // WhatsApp content compression is deferred until the panel becomes visible to ensure proper synchronization with the side panel state
         
         // Setup event listeners
         setupEventListeners(panel);
