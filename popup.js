@@ -812,7 +812,8 @@ class PopupController {
     async extractMembers() {
         const MAX_EXTRACTION_RETRIES = 3;
         const RETRY_DELAY_MS = 1500;
-        const INITIAL_WAIT_MS = 2000;
+        const INITIAL_WAIT_MS_ACTIVE = 2000;
+        const INITIAL_WAIT_MS_ARCHIVED = 2500;
         const RETRY_WAIT_MS = 1000;
         let lastError = null;
         
@@ -820,9 +821,10 @@ class PopupController {
             try {
                 console.log(`[Popup] 🔄 Tentativa de extração ${attempt}/${MAX_EXTRACTION_RETRIES}`);
                 
-                // Atualizar UI
+                // Atualizar UI com progresso dinâmico
                 if (attempt > 1) {
-                    this.showStatus(`🔄 Retry automático (${attempt}/${MAX_EXTRACTION_RETRIES})...`, 25);
+                    const retryProgress = 15 + (attempt - 1) * 10; // 25%, 35%, etc.
+                    this.showStatus(`🔄 Retry automático (${attempt}/${MAX_EXTRACTION_RETRIES})...`, retryProgress);
                     await this.delay(RETRY_DELAY_MS);
                 }
                 
@@ -841,8 +843,13 @@ class PopupController {
                 }
                 
                 this.showStatus('📂 Abrindo informações...', 30);
-                // Aguardar mais tempo na primeira tentativa
-                const waitTime = attempt === 1 ? INITIAL_WAIT_MS : RETRY_WAIT_MS;
+                // Aguardar mais tempo na primeira tentativa, com tempo extra para arquivados
+                let waitTime;
+                if (attempt === 1) {
+                    waitTime = this.selectedGroup.isArchived ? INITIAL_WAIT_MS_ARCHIVED : INITIAL_WAIT_MS_ACTIVE;
+                } else {
+                    waitTime = RETRY_WAIT_MS;
+                }
                 await this.delay(waitTime);
                 
                 this.showStatus('🔍 Iniciando extração...', 40);
@@ -871,7 +878,7 @@ class PopupController {
         
         // Todas as tentativas falharam
         console.error(`[Popup] ❌ Todas as ${MAX_EXTRACTION_RETRIES} tentativas falharam`);
-        throw lastError || new Error('Extração falhou após múltiplas tentativas');
+        throw lastError || new Error(`Extração falhou após ${MAX_EXTRACTION_RETRIES} tentativas`);
     }
 
     delay(ms) {
