@@ -1,20 +1,25 @@
 {
   "manifest_version": 3,
   "name": "WhatsApp Group Member Extractor",
-  "version": "6.1.0",
+  "version": "6.2.0",
   "description": "Extrai membros de grupos do WhatsApp com Virtual Scroll, IndexedDB e Google Sheets export",
   "permissions": [
     "activeTab",
-    "scripting",
+    "tabs",
     "storage",
     "unlimitedStorage",
-    "sidePanel"
+    "sidePanel",
+    "scripting",
+    "webRequest",
+    "downloads"
   ],
   "host_permissions": [
-    "https://web.whatsapp.com/*"
+    "https://web.whatsapp.com/*",
+    "https://*.whatsapp.net/*"
   ],
   "action": {
     "default_title": "Abrir WhatsApp Extractor",
+    "default_popup": "popup/popup.html",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",
@@ -31,9 +36,13 @@
     {
       "matches": ["https://web.whatsapp.com/*"],
       "js": [
+        "content/utils/constants.js",
+        "content/utils/logger.js",
+        "content/utils/phone-validator.js",
+        "content/utils/selectors.js",
         "content/top-panel-injector.js",
-        "content/extractor-v6-optimized.js",
         "content/extractor.contacts.js",
+        "content/extractor-v6-optimized.js",
         "content/campaign.js",
         "content/content.js"
       ],
@@ -46,6 +55,11 @@
       "resources": [
         "content/inject.js",
         "content/wpp-hooks.js",
+        "content/worker-content.js",
+        "content/utils/constants.js",
+        "content/utils/logger.js",
+        "content/utils/phone-validator.js",
+        "content/utils/selectors.js",
         "utils/utils-optimized.js",
         "utils/storage.js",
         "utils/google-sheets-export.js"

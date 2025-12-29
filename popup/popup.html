@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Extractor</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="popup-container">
+        <!-- Header -->
+        <div class="popup-header">
+            <div class="logo">
+                <span class="logo-icon">👥</span>
+                <span class="logo-text">WA Extractor</span>
+            </div>
+            <div class="version">v6.2.0</div>
+        </div>
+
+        <!-- Status Card -->
+        <div class="status-card">
+            <div class="status-indicator">
+                <div class="status-dot" id="statusDot"></div>
+                <span class="status-text" id="statusText">Aguardando...</span>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+            <button class="action-btn primary" id="btnOpenPanel">
+                <span class="btn-icon">📊</span>
+                <span class="btn-label">Abrir Painel</span>
+            </button>
+            <button class="action-btn secondary" id="btnExtractContacts">
+                <span class="btn-icon">📥</span>
+                <span class="btn-label">Extrair Contatos</span>
+            </button>
+            <button class="action-btn tertiary" id="btnRecover">
+                <span class="btn-icon">🔄</span>
+                <span class="btn-label">Recover</span>
+            </button>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">📤</div>
+                <div class="stat-value" id="statSent">0</div>
+                <div class="stat-label">Enviadas</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">⏳</div>
+                <div class="stat-value" id="statPending">0</div>
+                <div class="stat-label">Pendentes</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">✅</div>
+                <div class="stat-value" id="statSuccess">0</div>
+                <div class="stat-label">Sucesso</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">❌</div>
+                <div class="stat-value" id="statFailed">0</div>
+                <div class="stat-label">Falhas</div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="popup-footer">
+            <a href="https://github.com/sevadarkness/correcao" target="_blank">
+                WhatsApp Extractor
+            </a>
+        </div>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>
