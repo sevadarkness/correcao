@@ -97,21 +97,29 @@
         const tabs = bar.querySelectorAll('.top-panel-tab');
         tabs.forEach(tab => {
             tab.addEventListener('click', () => {
+                const tabName = tab.dataset.tab;
+                
                 // Remove active class from all tabs
                 tabs.forEach(t => t.classList.remove('active'));
                 // Add active class to clicked tab
                 tab.classList.add('active');
                 
-                const tabName = tab.dataset.tab;
-                console.log('[TopPanel] Tab switched to:', tabName);
+                console.log('[TopPanel] Tab clicked:', tabName);
                 
-                // Send message to Side Panel to switch content
-                chrome.runtime.sendMessage({
-                    action: 'switchTab',
-                    tab: tabName
+                // Send message to background to broadcast tab switch
+                chrome.runtime.sendMessage({ 
+                    action: 'switchTab', 
+                    tab: tabName 
+                }).then(() => {
+                    console.log('[TopPanel] Tab switch message sent successfully');
                 }).catch(err => {
                     console.log('[TopPanel] Could not send tab switch message:', err.message);
                 });
+                
+                // Also dispatch local event
+                window.dispatchEvent(new CustomEvent('wa-extractor-switch-tab', { 
+                    detail: { tab: tabName } 
+                }));
             });
         });
         
@@ -123,6 +131,22 @@
             });
         }
     }
+
+    // Listen for tab switch events from content script
+    window.addEventListener('wa-extractor-switch-tab', (event) => {
+        const tabName = event.detail.tab;
+        console.log('[TopPanel] Received tab switch event:', tabName);
+        
+        // Update tab UI
+        const tabs = document.querySelectorAll('.top-panel-tab');
+        tabs.forEach(tab => {
+            if (tab.dataset.tab === tabName) {
+                tab.classList.add('active');
+            } else {
+                tab.classList.remove('active');
+            }
+        });
+    });
 
     // Show the top bar
     function showBar() {
