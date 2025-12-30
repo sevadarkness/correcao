@@ -60,9 +60,44 @@ class PopupController {
             this.cacheElements();
             this.bindEventsOptimized();
             this.setupHistoryEventDelegation(); // Configurar event delegation do histórico
+            this.setupTabSwitchListener(); // Listen for tab switches from top panel
             this.initStorage();
             this.checkWhatsAppTab();
         });
+    }
+    
+    // ========================================
+    // TAB SWITCHING LISTENER
+    // ========================================
+    setupTabSwitchListener() {
+        // Listen for tab switch messages from background
+        chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+            if (message.action === 'switchTab') {
+                const tabName = message.tab;
+                console.log('[SidePanel] Tab switch received:', tabName);
+                this.handleTabSwitch(tabName);
+                sendResponse({ success: true });
+            }
+            return true;
+        });
+    }
+    
+    handleTabSwitch(tabName) {
+        console.log('[SidePanel] Switching to tab:', tabName);
+        
+        // Map tab names to steps
+        const tabToStepMap = {
+            'principal': 1,
+            'extractor': 2,
+            'grupos': 2,
+            'recover': 4, // Show history for recover
+            'config': 5   // Use campaign section for config temporarily
+        };
+        
+        const step = tabToStepMap[tabName];
+        if (step) {
+            this.goToStep(step);
+        }
     }
 
     // Notify background that side panel has opened
@@ -613,6 +648,21 @@ class PopupController {
     hideError() {
         if (!this.errorBox) return;
         this.errorBox.classList.add('hidden');
+    }
+    
+    showSuccess(message) {
+        // Use the error box styled as success temporarily
+        if (!this.errorBox) return;
+        if (this.errorText) this.errorText.textContent = message;
+        this.errorBox.classList.remove('hidden');
+        this.errorBox.style.backgroundColor = 'rgba(37, 211, 102, 0.15)';
+        this.errorBox.style.borderColor = 'rgba(37, 211, 102, 0.3)';
+        setTimeout(() => {
+            this.hideError();
+            // Reset colors
+            this.errorBox.style.backgroundColor = '';
+            this.errorBox.style.borderColor = '';
+        }, 3000);
     }
 
     // ========================================
@@ -1749,6 +1799,13 @@ class PopupController {
         try {
             console.log('[SidePanel] Starting campaign...');
             
+            // Get WhatsApp tab
+            const tabs = await chrome.tabs.query({ url: "*://web.whatsapp.com/*" });
+            if (tabs.length === 0) {
+                this.showError('❌ Por favor, abra o WhatsApp Web primeiro');
+                return;
+            }
+            
             this.campaignManager.isRunning = true;
             this.campaignManager.isPaused = false;
             
@@ -1757,36 +1814,20 @@ class PopupController {
             this.btnPauseCampaign.classList.remove('hidden');
             this.campaignProgress.classList.remove('hidden');
             
+            // Notify background
+            await chrome.runtime.sendMessage({
+                action: 'startCampaign',
+                numbers: this.campaignManager.queue.map(item => item.phone)
+            });
+            
             // Load config
             const result = await chrome.storage.local.get('campaignConfig');
             if (result.campaignConfig) {
                 this.campaignManager.setConfig(result.campaignConfig);
             }
             
-            // Start campaign
-            const sendFunction = async (item) => {
-                try {
-                    // Send via content script
-                    const response = await chrome.runtime.sendMessage({
-                        action: 'sendMessage',
-                        phone: item.phone,
-                        message: item.message
-                    });
-                    
-                    return response || { success: false, error: 'No response' };
-                } catch (error) {
-                    return { success: false, error: error.message };
-                }
-            };
-            
-            const progressCallback = (progress) => {
-                this.updateCampaignProgress(progress);
-            };
-            
-            // Use CampaignModule to start
-            if (typeof CampaignModule !== 'undefined') {
-                await CampaignModule.startCampaign(this.campaignManager, sendFunction, progressCallback);
-            }
+            // Process campaign
+            await this.processCampaign(tabs[0].id);
             
             console.log('[SidePanel] Campaign finished');
             this.showSuccess('✅ Campanha concluída!');
@@ -1797,7 +1838,91 @@ class PopupController {
         } finally {
             this.btnPauseCampaign.classList.add('hidden');
             this.btnStartCampaign.classList.remove('hidden');
+            
+            // Notify background
+            await chrome.runtime.sendMessage({ action: 'stopCampaign' });
         }
+    }
+    
+    async processCampaign(tabId) {
+        const queue = this.campaignManager.queue;
+        const config = this.campaignManager.config;
+        
+        for (let i = this.campaignManager.currentIndex; i < queue.length; i++) {
+            // Check if paused or stopped
+            if (!this.campaignManager.isRunning) {
+                console.log('[SidePanel] Campaign stopped');
+                break;
+            }
+            
+            while (this.campaignManager.isPaused) {
+                console.log('[SidePanel] Campaign paused, waiting...');
+                await this.delay(1000);
+            }
+            
+            const item = queue[i];
+            this.campaignManager.currentIndex = i;
+            
+            // Update UI
+            item.status = 'sending';
+            this.updateCampaignProgress({
+                progress: Math.round((i / queue.length) * 100),
+                current: item
+            });
+            
+            try {
+                // Send message via content script
+                const response = await chrome.tabs.sendMessage(tabId, {
+                    action: 'sendMessage',
+                    phone: item.phone,
+                    message: item.message,
+                    delayMin: config.delayMin,
+                    delayMax: config.delayMax
+                });
+                
+                if (response && response.success) {
+                    item.status = 'sent';
+                    item.timestamp = new Date().toISOString();
+                    console.log('[SidePanel] Message sent to:', item.phone);
+                } else {
+                    item.status = 'failed';
+                    item.error = response?.error || 'Unknown error';
+                    console.error('[SidePanel] Failed to send to:', item.phone, item.error);
+                }
+            } catch (error) {
+                item.status = 'failed';
+                item.error = error.message;
+                console.error('[SidePanel] Error sending to:', item.phone, error);
+            }
+            
+            // Update stats
+            this.campaignManager.updateStats();
+            this.updateCampaignStats();
+            this.updateQueueTable();
+            
+            // Notify background
+            await chrome.runtime.sendMessage({
+                type: 'campaignProgress',
+                currentIndex: i,
+                stats: this.campaignManager.stats,
+                status: 'running'
+            });
+        }
+        
+        // Campaign complete
+        this.campaignManager.isRunning = false;
+        this.updateCampaignProgress({
+            progress: 100,
+            complete: true
+        });
+        
+        // Notify background
+        await chrome.runtime.sendMessage({
+            type: 'campaignProgress',
+            complete: true,
+            stats: this.campaignManager.stats,
+            status: 'completed'
+        });
     }
     
     pauseCampaign() {
@@ -1805,18 +1930,20 @@ class PopupController {
         
         if (this.campaignManager.isPaused) {
             // Resume
-            if (typeof CampaignModule !== 'undefined') {
-                CampaignModule.resumeCampaign(this.campaignManager);
-            }
+            this.campaignManager.isPaused = false;
             this.btnPauseCampaign.textContent = '⏸️ Pausar';
             console.log('[SidePanel] Campaign resumed');
+            
+            // Notify background
+            chrome.runtime.sendMessage({ action: 'resumeCampaign' }).catch(console.error);
         } else {
             // Pause
-            if (typeof CampaignModule !== 'undefined') {
-                CampaignModule.pauseCampaign(this.campaignManager);
-            }
+            this.campaignManager.isPaused = true;
             this.btnPauseCampaign.textContent = '▶️ Continuar';
             console.log('[SidePanel] Campaign paused');
+            
+            // Notify background
+            chrome.runtime.sendMessage({ action: 'pauseCampaign' }).catch(console.error);
         }
     }
     
@@ -1824,12 +1951,14 @@ class PopupController {
         if (!this.campaignManager) return;
         
         if (confirm('Tem certeza que deseja parar a campanha?')) {
-            if (typeof CampaignModule !== 'undefined') {
-                CampaignModule.stopCampaign(this.campaignManager);
-            }
+            this.campaignManager.isRunning = false;
+            this.campaignManager.isPaused = false;
             
             this.btnPauseCampaign.classList.add('hidden');
             this.btnStartCampaign.classList.remove('hidden');
+            
+            // Notify background
+            chrome.runtime.sendMessage({ action: 'stopCampaign' }).catch(console.error);
             
             console.log('[SidePanel] Campaign stopped');
             this.showSuccess('⏹️ Campanha parada');

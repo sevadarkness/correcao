@@ -349,6 +349,26 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         });
     }
     
+    // ========================================
+    // TAB SWITCHING
+    // ========================================
+    if (message.action === 'switchTab') {
+        console.log('[WA Extractor] Tab switch requested:', message.tab);
+        
+        // Broadcast to all WhatsApp tabs
+        chrome.tabs.query({url: "*://web.whatsapp.com/*"}, (tabs) => {
+            tabs.forEach(tab => {
+                chrome.tabs.sendMessage(tab.id, { 
+                    action: 'switchTab', 
+                    tab: message.tab 
+                }).catch(err => console.log('[WA Extractor] Tab message failed:', err));
+            });
+        });
+        
+        sendResponse({ success: true });
+        return true;
+    }
+    
     return false;
 });
 

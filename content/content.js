@@ -100,6 +100,18 @@ function callPageAPI(type, data = {}) {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log('[WA Extractor] Mensagem recebida:', message);
     
+    // Handle switchTab message from background
+    if (message.action === 'switchTab') {
+        const tabName = message.tab;
+        console.log('[WA Extractor] Switching to tab:', tabName);
+        // Dispatch event for top panel
+        window.dispatchEvent(new CustomEvent('wa-extractor-switch-tab', { 
+            detail: { tab: tabName } 
+        }));
+        sendResponse({ success: true });
+        return true;
+    }
+    
     handleMessage(message).then(sendResponse).catch(error => {
         console.error('[WA Extractor] Erro:', error);
         sendResponse({ success: false, error: error.message });
@@ -199,9 +211,98 @@ async function handleMessage(message) {
                 message: message.message,
                 delay: message.delay || 50
             });
+        
+        case 'switchTab':
+            // Dispatch custom event for top panel to handle
+            window.dispatchEvent(new CustomEvent('wa-extractor-switch-tab', { 
+                detail: { tab: message.tab } 
+            }));
+            return { success: true };
+        
+        case 'sendMessage':
+            // Handle campaign message sending
+            return await processCampaignStep(
+                message.phone, 
+                message.message, 
+                message.delayMin || 5, 
+                message.delayMax || 10
+            );
             
         default:
             return { success: false, error: '⚠️ Operação não reconhecida. Recarregue a extensão.' };
+    }
+}
+
+// ========================================
+// CAMPAIGN MESSAGE SENDING FUNCTIONS
+// ========================================
+
+// Function to open chat by phone number
+async function abrirChatPorNumero(phone) {
+    const url = `https://web.whatsapp.com/send?phone=${phone}`;
+    window.location.href = url;
+    
+    // Wait for chat to load
+    await sleep(3000);
+    return true;
+}
+
+// Function to type message in the input field
+async function typeMessageInField(message) {
+    const inputField = document.querySelector('div[contenteditable="true"][data-tab="10"]');
+    if (!inputField) {
+        throw new Error('Campo de mensagem não encontrado');
+    }
+    
+    inputField.focus();
+    inputField.innerHTML = message;
+    
+    // Trigger input event
+    inputField.dispatchEvent(new InputEvent('input', { bubbles: true }));
+    
+    return true;
+}
+
+// Function to click send button
+async function clickSendButton() {
+    const sendButton = document.querySelector('button[data-tab="11"]') || 
+                       document.querySelector('span[data-icon="send"]')?.parentElement;
+    if (sendButton) {
+        sendButton.click();
+        return true;
+    }
+    return false;
+}
+
+// Process campaign step (send one message)
+async function processCampaignStep(phone, message, delayMin = 5, delayMax = 10) {
+    try {
+        console.log('[WA Extractor] Processing campaign step for:', phone);
+        
+        // Open chat
+        await abrirChatPorNumero(phone);
+        
+        // Wait for input field
+        await sleep(2000);
+        
+        // Type message
+        await typeMessageInField(message);
+        
+        // Wait a bit before sending
+        await sleep(500);
+        
+        // Send
+        await clickSendButton();
+        
+        // Random delay before next message
+        const delay = Math.floor(Math.random() * (delayMax - delayMin + 1) + delayMin) * 1000;
+        await sleep(delay);
+        
+        console.log('[WA Extractor] Message sent successfully to:', phone);
+        return { success: true, phone };
+    } catch (error) {
+        console.error('[WA Extractor] Error sending message:', error);
+        return { success: false, phone, error: error.message };
     }
 }
 
